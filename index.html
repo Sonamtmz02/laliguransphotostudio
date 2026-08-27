@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Laligurans Photo Studio — Photos, Printing & Frames</title>
-<meta name="description" id="metaDesc" content="Laligurans Photo Studio — passport photos, photo printing, frames, albums and event photography. सम्झनाको लागी फोटो, फोटोको लागी गुराँस।" />
+<meta name="description" id="metaDesc" content="Laligurans Photo Studio — सम्झनाको लागी फोटो, फोटोको लागी गुराँस।" />
 <meta property="og:title" content="Laligurans Photo Studio" />
 <meta property="og:description" content="सम्झनाको लागी फोटो, फोटोको लागी गुराँस।" />
 <meta property="og:type" content="website" />
@@ -20,130 +20,101 @@
 <div id="annBar" class="ann-bar" hidden></div>
 
 <header class="site-head">
+  <button id="navToggle" class="icon-btn" aria-label="Menu">☰</button>
   <a class="brand" href="#home">
-    <img src="/logo.png" alt="Laligurans Photo Studio logo" onerror="this.style.display='none'">
-    <span id="brandName">Laligurans Photo Studio</span>
+    <span class="brand-ic"><img src="/logo.png" alt="" onerror="this.style.display='none'">📷</span>
+    <span class="brand-txt"><strong id="brandName">Laligurans</strong><small>PHOTO STUDIO</small></span>
   </a>
-  <nav id="mainNav" class="main-nav" aria-label="Main">
-    <a href="#services">Services</a>
-    <a href="#sizes">Sizes & Pricing</a>
-    <a href="#gallery">Gallery</a>
-    <a href="#about">About</a>
-    <a href="#hours">Hours</a>
-    <a href="#contact">Contact</a>
-  </nav>
-  <div class="head-right">
-    <span id="openBadge" class="badge gray">…</span>
-    <a id="headWa" class="icon-wa" href="#" target="_blank" rel="noopener" aria-label="WhatsApp" hidden>
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg>
-    </a>
-    <button id="navToggle" class="icon-btn" aria-label="Menu" aria-expanded="false">☰</button>
+  <div class="head-icons">
+    <button id="searchToggle" class="icon-btn" aria-label="Search">🔍</button>
+    <button id="themeToggle" class="icon-btn" aria-label="Theme">☀️</button>
+    <button id="favToggle" class="icon-btn heart" aria-label="Favorites">♥</button>
   </div>
 </header>
-<div id="navBackdrop" class="nav-backdrop" hidden></div>
+
+<div id="searchBar" class="search-bar" hidden>
+  <input id="searchInput" type="search" placeholder="Search services..." aria-label="Search" />
+</div>
+
+<!-- Collections drawer -->
+<div id="drawer" class="drawer" aria-label="Collections">
+  <div class="drawer-head"><h3>Collections</h3><button id="drawerClose" class="icon-btn" aria-label="Close">✕</button></div>
+  <div id="drawerCats" class="drawer-cats"></div>
+  <div class="drawer-contact">
+    <p class="dc-title">CONTACT STUDIO</p>
+    <a id="dCall" href="#" hidden>📞 <span id="dPhone"></span></a>
+    <a id="dWa" href="#" target="_blank" rel="noopener" hidden>💬 <span id="dWaPhone"></span></a>
+  </div>
+</div>
+
+<!-- Favorites drawer -->
+<div id="favDrawer" class="drawer right" aria-label="Favorites">
+  <div class="drawer-head"><h3>♥ Favorites</h3><button id="favClose" class="icon-btn" aria-label="Close">✕</button></div>
+  <div id="favList" class="drawer-cats"></div>
+</div>
+
+<div id="backdrop" class="backdrop" hidden></div>
 
 <main>
-  <!-- HOME -->
   <section id="home" class="hero">
-    <div class="hero-inner">
-      <p class="hero-kicker">🌺 Welcome to</p>
-      <h1 id="heroName">Laligurans Photo Studio</h1>
-      <p id="heroTagline" class="hero-tag">सम्झनाको लागी फोटो, फोटोको लागी गुराँस</p>
-      <div class="hero-cta">
-        <a href="#services" class="btn btn-primary">View Services</a>
-        <a id="heroWa" href="#" target="_blank" rel="noopener" class="btn btn-wa" hidden>WhatsApp Us</a>
-        <a id="heroCall" href="#" class="btn" hidden>📞 Call Now</a>
-      </div>
-      <p id="heroMeta" class="hero-meta muted"></p>
-    </div>
+    <span id="greetBadge" class="greet">🌞 GOOD MORNING, WELCOME!</span>
+    <h1 class="hero-title"><span id="tagLine1">सम्झनाको लागी फोटो</span><span id="tagLine2" class="grad">फोटोको लागी गुराँस</span></h1>
+    <p id="heroSub" class="hero-sub">Premium photography, prints and frames.</p>
+    <a href="#services" class="btn-cta">Explore Collection</a>
   </section>
 
-  <!-- SERVICES / PRODUCTS -->
   <section id="services" class="section">
     <div class="wrap">
-      <h2>Our Services</h2>
-      <p class="muted">Prices र sizes product अनुसार फरक हुन सक्छन्।</p>
-      <div class="svc-tools">
-        <input id="searchInput" type="search" placeholder="Search services..." aria-label="Search services" />
-        <div id="catChips" class="chips"></div>
-      </div>
-      <div id="productGrid" class="p-grid"><p class="muted">Loading services...</p></div>
+      <div class="sec-head"><h2 id="prodTitle">All Products</h2><p id="prodSub" class="muted">Loading collection...</p></div>
+      <div id="catChips" class="chips"></div>
+      <div id="productGrid" class="p-grid"></div>
     </div>
   </section>
 
-  <!-- SIZES -->
-  <section id="sizes" class="section alt">
-    <div class="wrap">
-      <h2>Sizes & Pricing</h2>
-      <p class="muted">Standard print sizes। Product-specific size price service card मा हेर्नुहोस्।</p>
-      <div id="sizeGrid" class="s-grid"><p class="muted">Loading...</p></div>
-    </div>
+  <section id="sizes" class="section">
+    <div class="wrap"><h2>Sizes & Pricing</h2><p class="muted">Standard print sizes।</p><div id="sizeGrid" class="s-grid"></div></div>
   </section>
 
-  <!-- GALLERY -->
   <section id="gallery" class="section">
-    <div class="wrap">
-      <h2>Gallery</h2>
-      <p class="muted">हाम्रा केही कामहरू। (फोटो tap गरेर ठूलो हेर्नुहोस्)</p>
-      <div id="galleryGrid" class="g-grid"><p class="muted">Loading...</p></div>
-    </div>
+    <div class="wrap"><h2>Gallery</h2><p class="muted">फोटो tap गरेर ठूलो हेर्नुहोस्।</p><div id="galleryGrid" class="g-grid"></div></div>
   </section>
 
-  <!-- ABOUT -->
-  <section id="about" class="section alt">
+  <section id="about" class="section">
     <div class="wrap narrow">
-      <h2>About Us</h2>
-      <blockquote id="aboutQuote" class="quote">सम्झनाको लागी फोटो, फोटोको लागी गुराँस</blockquote>
-      <p id="aboutText" class="about-text">Laligurans Photo Studio — quality photo services।</p>
+      <div class="about-brand"><span class="brand-ic big">📷</span><h2 id="aboutName">Laligurans</h2></div>
+      <p id="aboutTag" class="about-tag">Framing Your Beautiful Memories.</p>
+      <p id="aboutAddr" class="about-line">📍 <span></span></p>
+      <p id="aboutPhone" class="about-line">📞 <span></span></p>
+      <p id="aboutWa" class="about-line">💬 <span></span></p>
     </div>
   </section>
 
-  <!-- HOURS -->
   <section id="hours" class="section">
     <div class="wrap narrow">
       <h2>Business Hours</h2>
-      <p class="muted">समय: Nepal (Asia/Kathmandu) अनुसार।</p>
       <div id="hoursStatus" class="hours-status"></div>
       <div id="hoursTable" class="hours-table"></div>
-    </div>
-  </section>
-
-  <!-- CONTACT -->
-  <section id="contact" class="section alt">
-    <div class="wrap">
-      <h2>Contact & Location</h2>
-      <div class="c-grid">
-        <a id="cCall" class="c-card" href="#" hidden><span class="c-ic">📞</span><strong>Call</strong><span id="cPhone" class="muted"></span></a>
-        <a id="cWa" class="c-card" href="#" target="_blank" rel="noopener" hidden><span class="c-ic">💬</span><strong>WhatsApp</strong><span class="muted">Message us</span></a>
-        <a id="cMail" class="c-card" href="#" hidden><span class="c-ic">✉️</span><strong>Email</strong><span id="cEmail" class="muted"></span></a>
-        <div class="c-card"><span class="c-ic">📍</span><strong>Address</strong><span id="cAddress" class="muted"></span></div>
-        <a id="cMap" class="c-card" href="#" target="_blank" rel="noopener" hidden><span class="c-ic">🗺️</span><strong>Google Maps</strong><span class="muted">Open map</span></a>
-      </div>
-      <div id="socialRow" class="social-row">
-        <a id="sFb" href="#" target="_blank" rel="noopener" hidden>Facebook</a>
-        <a id="sIg" href="#" target="_blank" rel="noopener" hidden>Instagram</a>
-        <a id="sTk" href="#" target="_blank" rel="noopener" hidden>TikTok</a>
-      </div>
+      <div class="map-box"><iframe id="mapFrame" title="Studio location map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><a id="cMap" class="btn-small-map" href="#" target="_blank" rel="noopener" hidden>Maps ↗</a></div>
     </div>
   </section>
 </main>
 
 <footer class="site-foot">
-  <div class="wrap foot-inner">
-    <div><img src="/logo.png" alt="" onerror="this.style.display='none'"><span id="footName">Laligurans Photo Studio</span></div>
-    <p id="footTag" class="muted">सम्झनाको लागी फोटो, फोटोको लागी गुराँस</p>
-    <p class="muted small">© <span id="year"></span> · <a href="/">Admin</a></p>
+  <p id="footCopy" class="muted">© 2026 Laligurans Photo Studio. All rights reserved.</p>
+  <div class="social-row">
+    <a id="sFb" href="#" target="_blank" rel="noopener" hidden aria-label="Facebook">f</a>
+    <a id="sIg" href="#" target="_blank" rel="noopener" hidden aria-label="Instagram">◎</a>
+    <a id="sTk" href="#" target="_blank" rel="noopener" hidden aria-label="TikTok">♪</a>
   </div>
+  <p class="muted small"><a href="/">Admin</a></p>
 </footer>
 
-<!-- mobile quick actions -->
 <div class="quickbar">
   <a id="qCall" href="#" hidden>📞 Call</a>
   <a id="qWa" href="#" target="_blank" rel="noopener" hidden>💬 WhatsApp</a>
   <a id="qMap" href="#" target="_blank" rel="noopener" hidden>📍 Map</a>
 </div>
 
-<!-- lightbox -->
 <div id="lightbox" class="lightbox" hidden>
   <img id="lightboxImg" src="" alt="Gallery photo" />
   <button id="lightboxClose" class="icon-btn" aria-label="Close">✕</button>
