@@ -1,11 +1,11 @@
 /* LALIGURANS USER PANEL v3 - real icons, product modal, image fix */
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID"
+  apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
+  authDomain: "laligurans-photo-studio.firebaseapp.com",
+  projectId: "laligurans-photo-studio",
+  storageBucket: "laligurans-photo-studio.firebasestorage.app",
+  messagingSenderId: "826817572339",
+  appId: "1:826817572339:web:8d2d2c8831c7a511b7f686"
 };
 // IMPORTANT: image/API admin project को domain (यहीँबाट /api/img serve हुन्छ)
 const API_BASE = "https://laligurans-admin.pages.dev";
