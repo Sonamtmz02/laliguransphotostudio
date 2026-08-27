@@ -448,6 +448,26 @@ function init() {
   $("shFb").addEventListener("click", () => { if (state.share) window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(state.share.url), "_blank", "noopener"); });
   $("shTg").addEventListener("click", () => { if (state.share) window.open("https://t.me/share/url?url=" + encodeURIComponent(state.share.url) + "&text=" + encodeURIComponent(state.share.title), "_blank", "noopener"); });
 
+  /* SPA navigation: View Details instant */
+  document.addEventListener("click", e => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest("a");
+    if (!a) return;
+    const href = a.getAttribute("href") || "";
+    if (!href || href.startsWith("#")) return;
+    let url;
+    try { url = new URL(href, location.origin); } catch { return; }
+    if (url.origin !== location.origin) return;
+    const p = url.pathname;
+    if (p.startsWith("/product/") || p.startsWith("/category/") || p === "/") {
+      e.preventDefault();
+      history.pushState({}, "", p + (url.hash || ""));
+      route();
+      if (url.hash) { const el = document.querySelector(url.hash); if (el) el.scrollIntoView({ behavior: "smooth" }); }
+    }
+  });
+  window.addEventListener("popstate", () => route());
+  
   /* Gallery lightbox */
   $("galleryGrid").addEventListener("click", e => { const it = e.target.closest(".g-item"); if (!it || it.dataset.idx == null) return; openLightbox(+it.dataset.idx); });
   $("lightboxClose").addEventListener("click", () => { $("lightbox").hidden = true; });
