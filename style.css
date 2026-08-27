@@ -230,3 +230,15 @@ body.dark .pm-size span:last-child{color:var(--accent)}
 .about-badge{display:inline-block;background:var(--primary-light);color:var(--primary-dark);border:1px solid var(--primary);border-radius:999px;padding:.4rem 1rem;font-weight:800;font-size:.72rem;margin:.2rem 0 1.1rem}
 body.dark .about-badge{color:var(--primary)}
 .prop-bio{color:var(--text-muted);font-size:.88rem;line-height:1.8;text-align:center;margin:.55rem 0}
+
+/* about CTA + about modal (v10) */
+.about-cta{display:flex;gap:1rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
+.about-cta-ic{font-size:1.7rem;color:var(--primary);flex:none}
+.about-cta-txt{min-width:0}
+.about-cta h2{margin:0 0 .2rem;font-size:1.15rem}
+.about-cta p{margin:0;font-size:.85rem}
+.btn-cta.small{margin-left:auto;padding:.7rem 1.3rem;font-size:.85rem;flex:none;box-shadow:none}
+@media(max-width:520px){.about-cta{flex-wrap:wrap}.btn-cta.small{margin-left:0;width:100%;text-align:center}}
+.about-title{font-size:1.4rem;margin:.2rem 0 .5rem}
+#aboutModal .about-text p{margin:0 0 .9rem;color:var(--text-muted);font-size:.92rem;line-height:1.85}
+#aboutModal .about-text p:last-child{margin-bottom:0}
