@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL v4 - 10/10 premium, all functionality preserved */
+/* LALIGURANS USER PANEL v5 */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -11,6 +11,29 @@ const API_BASE = "https://laligurans-admin.pages.dev";
 const CUR = "रु.";
 const DEFAULT_TAG = "सम्झनाको लागी फोटो, फोटोको लागी गुराँस";
 const DAYS = [["sunday","Sunday"],["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"]];
+const NEP_DAYS = ["आइतबार","सोमबार","मङ्गलबार","बुधबार","बिहीबार","शुक्रबार","शनिबार"];
+const NEP_MONTHS = ["वैशाख","जेठ","असार","साउन","भदौ","असोज","कात्तिक","मंसिर","पुस","माघ","फागुन","चैत"];
+const ND = ["०","१","२","३","४","५","६","७","८","९"];
+const np = s => String(s).replace(/\d/g, d => ND[d]);
+/* BS calendar data 2080-2090 (anchor: 1 Baisakh 2080 = 14 Apr 2023) */
+const BS = {
+ 2080:[31,31,32,31,31,30,30,29,30,29,30,30],2081:[31,32,31,32,31,30,30,30,29,29,30,30],
+ 2082:[31,32,31,32,31,30,30,30,29,30,29,31],2083:[31,31,32,31,31,30,30,29,30,29,30,30],
+ 2084:[31,32,31,32,31,30,30,30,29,29,30,31],2085:[31,31,32,31,31,30,30,29,30,29,30,30],
+ 2086:[31,32,31,32,31,30,30,30,29,29,30,30],2087:[31,32,31,32,31,30,30,30,29,30,29,31],
+ 2088:[31,31,32,31,31,30,30,29,30,29,30,30],2089:[31,32,31,32,31,30,30,30,29,29,30,30],
+ 2090:[31,32,31,32,31,30,30,30,29,30,29,31]
+};
+function toBS(ce) {
+  const anchor = Date.UTC(2023, 3, 14);
+  let diff = Math.round((Date.UTC(ce.y, ce.m - 1, ce.d) - anchor) / 86400000);
+  if (diff < 0) return null;
+  let y = 2080;
+  while (y <= 2090) { const yt = BS[y].reduce((a,b) => a+b, 0); if (diff < yt) break; diff -= yt; y++; }
+  if (y > 2090) return null;
+  let m = 0; while (diff >= BS[y][m]) { diff -= BS[y][m]; m++; }
+  return { y, m: m + 1, d: diff + 1 };
+}
 const CAM = `<svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
 const HEART = `<svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
 const state = { store: null, categories: null, products: null, sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "system", pmId: null };
@@ -21,27 +44,26 @@ function esc(v) { return String(v ?? "").replaceAll("&","&amp;").replaceAll("<",
 function safeUrl(v) { const s = String(v||"").trim(); if (!s) return ""; try { const u = new URL(s); return ["https:","http:"].includes(u.protocol) ? s : ""; } catch { return ""; } }
 function imgUrl(v) { if (!v) return ""; const s = String(v); if (s.startsWith("http")) return s; if (s.startsWith("/api/")) return API_BASE + s; return ""; }
 function fmtMoney(n) { return `${CUR} ${Number(n||0).toLocaleString()}`; }
+function fmt12(hm) { if (!hm) return ""; let [h,m] = String(hm).split(":").map(Number); const ap = h < 12 ? "AM" : "PM"; let hh = h % 12; if (hh === 0) hh = 12; return `${hh}:${String(m).padStart(2,"0")} ${ap}`; }
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function storeName() { return (state.store && state.store.name) || "Laligurans Photo Studio"; }
 
-/* THEME: light / dark / system */
 function resolveTheme(t) { if (t === "system") return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; return t; }
 function applyTheme(t, save = true) {
   state.theme = t; const r = resolveTheme(t);
   document.body.classList.toggle("dark", r === "dark");
-  $("iconSun").hidden = !(t === "light"); $("iconMoon").hidden = !(t === "dark"); $("iconAuto").hidden = !(t === "system");
+  document.body.classList.toggle("light", r === "light");
+  $("iconSun").hidden = !(r === "light"); $("iconMoon").hidden = !(r === "dark");
   if (save) localStorage.setItem("lgs_theme", t);
 }
 try { window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (state.theme === "system") applyTheme("system", false); }); } catch {}
 
-/* WISHLIST */
 function loadFavs() { try { state.favs = JSON.parse(localStorage.getItem("lgs_favs") || "[]"); } catch { state.favs = []; } }
 function saveFavs() { localStorage.setItem("lgs_favs", JSON.stringify(state.favs)); }
 function favCount() { const el = $("favCount"); el.textContent = state.favs.length; el.hidden = !state.favs.length; }
 function toggleFav(id) { state.favs = state.favs.includes(id) ? state.favs.filter(x => x !== id) : [...state.favs, id]; saveFavs(); favCount(); renderProducts(); renderFavs(); syncPmFav(); }
 function renderFavs() { const items = (state.products||[]).filter(p => state.favs.includes(p.id)); $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`; }
 
-/* WHATSAPP */
 function waNumber() { let d = ((state.store && state.store.phone) || "").replace(/\D/g,""); if (!d) return ""; if (!d.startsWith("977") && d.length === 10 && d.startsWith("9")) d = "977" + d; return d; }
 function waHref(msg) { const n = waNumber(); return n ? "https://wa.me/" + n + "?text=" + encodeURIComponent(msg) : ""; }
 function generalWa() { return waHref(`Namaste ${storeName()}! 🌺 I would like to know more about your services.`); }
@@ -53,27 +75,34 @@ function productWa(p) {
   return waHref(msg);
 }
 
-/* TIME */
-function ktNow() { const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); const g = t => parts.find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
+function ktParts() { return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); }
+function ktNow() { const g = t => ktParts().find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
 function toMin(v) { if (!v) return 0; const [h,m] = String(v).split(":").map(Number); return (h||0)*60+(m||0); }
 function bizStatus() {
   const d = state.hours;
   if (!d) return { open: null, text: "" };
   if (d.override && d.override.enabled) return { open: d.override.status === "open", text: d.override.status === "open" ? "Open" : "Closed" };
   const now = ktNow(), days = d.days || {}, today = days[now.day];
-  if (today && today.open) { if (now.min >= toMin(today.opens) && now.min < toMin(today.closes)) return { open: true, text: "Open now · closes " + today.closes }; if (now.min < toMin(today.opens)) return { open: false, text: "Closed · opens today " + today.opens }; }
+  if (today && today.open) { if (now.min >= toMin(today.opens) && now.min < toMin(today.closes)) return { open: true, text: "Open now · closes " + fmt12(today.closes) }; if (now.min < toMin(today.opens)) return { open: false, text: "Closed · opens today " + fmt12(today.opens) }; }
   const order = DAYS.map(x => x[0]), idx = order.indexOf(now.day);
-  for (let i=1;i<=7;i++){ const k = order[(idx+i)%7]; if (days[k] && days[k].open) return { open: false, text: "Closed · opens " + DAYS.find(x=>x[0]===k)[1] + " " + days[k].opens }; }
+  for (let i=1;i<=7;i++){ const k = order[(idx+i)%7]; if (days[k] && days[k].open) return { open: false, text: "Closed · opens " + DAYS.find(x=>x[0]===k)[1] + " " + fmt12(days[k].opens) }; }
   return { open: false, text: "Closed" };
 }
 function refreshBadge() { const s = bizStatus(); $("hoursStatus").innerHTML = s.open === null ? "" : (s.open ? `<span class="badge green">● ${esc(s.text)}</span>` : `<span class="badge red">● ${esc(s.text)}</span>`); }
 function greeting() { const h = ktNow().hour; if (h < 12) return "GOOD MORNING, WELCOME!"; if (h < 17) return "GOOD AFTERNOON, WELCOME!"; return "GOOD EVENING, WELCOME!"; }
+function updateNow() {
+  const g = t => ktParts().find(p => p.type === t).value;
+  const ce = { y: +g("year"), m: +g("month"), d: +g("day") };
+  const bs = toBS(ce);
+  const wd = NEP_DAYS[DAYS.map(x => x[0]).indexOf(g("weekday").toLowerCase())];
+  let h = +g("hour") % 24; const ap = h < 12 ? "AM" : "PM"; let hh = h % 12; if (hh === 0) hh = 12;
+  const dateStr = bs ? `${wd}, ${np(bs.d)} ${NEP_MONTHS[bs.m-1]} ${np(bs.y)}` : `${wd}, ${np(ce.d)}/${np(ce.m)}/${np(ce.y)}`;
+  $("nowChip").textContent = `${dateStr} · ${np(hh)}:${np(g("minute"))} ${ap}`;
+}
 
-/* REVEAL */
 const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }), { threshold: .08 }) : null;
 function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el => io ? io.observe(el) : el.classList.add("in")); }
 
-/* RENDERS */
 function renderAnnouncements() {
   const now = Date.now();
   const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2));
@@ -91,7 +120,7 @@ function renderCollections() {
   if (!cats) { el.innerHTML = ""; return; }
   el.innerHTML = cats.map(c => {
     const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl);
-    return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span>${c.description ? `<span class="col-desc">${esc(c.description)}</span>` : ""}</button>`;
+    return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`;
   }).join("");
 }
 function renderChips() {
@@ -104,7 +133,7 @@ function renderChips() {
 const SKEL = `<div class="p-card"><div class="sk-img"></div><div class="sk-line w60"></div><div class="sk-line w40"></div><div class="sk-line w80"></div></div>`;
 function renderProducts() {
   const grid = $("productGrid");
-  if (!state.products) { grid.innerHTML = SKEL + SKEL + SKEL; return; }
+  if (!state.products) { grid.innerHTML = SKEL + SKEL + SKEL + SKEL; return; }
   const q = state.search.toLowerCase();
   const items = state.products.filter(p => (state.catFilter === "all" || p.categoryId === state.catFilter) && (!q || (p.name||"").toLowerCase().includes(q) || (p.description||"").toLowerCase().includes(q)));
   if (!items.length) { grid.innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center;padding:2rem 0">❀<br>No products found.${q ? " Try another search." : ""}</p>`; return; }
@@ -154,7 +183,7 @@ function renderGallery() {
 }
 function renderHours() {
   const now = ktNow(); const days = (state.hours && state.hours.days) || {};
-  $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${d.opens} – ${d.closes}`}</span></div>`; }).join("");
+  $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join("");
   refreshBadge();
 }
 function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.href = href; el.hidden = false; } else el.hidden = true; }
@@ -179,11 +208,10 @@ function renderStore() {
   $("aboutPhone").hidden = !s.phone; $("aboutPhone").querySelector("span").textContent = s.phone || "";
   const wan = waNumber();
   $("dPhone").textContent = s.phone || ""; $("dWaPhone").textContent = wan ? "+" + wan : "";
-  setLink("dCall", s.phone ? "tel:" + s.phone.replace(/[^+\d]/g,"") : "");
-  setLink("dWa", generalWa());
-  setLink("cBtnCall", s.phone ? "tel:" + s.phone.replace(/[^+\d]/g,"") : "");
-  setLink("cBtnWa", generalWa());
-  setLink("cMap", safeUrl(s.mapUrl)); setLink("cBtnMap", safeUrl(s.mapUrl));
+  const tel = s.phone ? "tel:" + s.phone.replace(/[^+\d]/g,"") : "";
+  setLink("dCall", tel); setLink("fCall", tel);
+  setLink("dWa", generalWa()); setLink("fWa", generalWa());
+  setLink("cMap", safeUrl(s.mapUrl)); setLink("fMap", safeUrl(s.mapUrl));
   setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok));
   $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`;
   const mq = s.address || name;
@@ -191,11 +219,9 @@ function renderStore() {
   $("jsonld").textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "LocalBusiness", name, slogan: tag, telephone: s.phone || "", email: s.email || "", address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
 }
 
-/* drawers */
 function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; }
 function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("backdrop").hidden = true; }
 
-/* LIVE */
 function bindLive() {
   db.collection("categories").onSnapshot(s => { state.categories = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderDrawer(); renderChips(); renderCollections(); renderProducts(); }, () => {});
   db.collection("products").onSnapshot(s => { state.products = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderProducts(); renderCollections(); renderHeroVisual(); renderFavs(); }, () => {});
@@ -209,6 +235,7 @@ function bindLive() {
 function init() {
   loadFavs(); favCount();
   applyTheme(localStorage.getItem("lgs_theme") || "system", false);
+  updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
