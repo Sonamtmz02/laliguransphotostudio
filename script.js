@@ -94,7 +94,7 @@ function updateNow() {
   const g = t => ktParts().find(p => p.type === t).value;
   const ce = { y: +g("year"), m: +g("month"), d: +g("day") };
   const bs = toBS(ce);
-  const wd = NEP_DAYS[DAYS.map(x => x[0]).indexOf(g("weekday").toLowerCase())];
+  const wd = NEP_DAYS[["sun","mon","tue","wed","thu","fri","sat"].indexOf(g("weekday").toLowerCase().slice(0,3))];
   let h = +g("hour") % 24; const ap = h < 12 ? "AM" : "PM"; let hh = h % 12; if (hh === 0) hh = 12;
   const dateStr = bs ? `${wd}, ${np(bs.d)} ${NEP_MONTHS[bs.m-1]} ${np(bs.y)}` : `${wd}, ${np(ce.d)}/${np(ce.m)}/${np(ce.y)}`;
   $("nowChip").textContent = `${dateStr} · ${np(hh)}:${np(g("minute"))} ${ap}`;
