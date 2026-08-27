@@ -31,6 +31,10 @@ export async function onRequestGet(ctx){
     html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
     html=html.replace(/(<meta property="og:image" id="ogImage" content=")[^"]*(")/,`$1${img}$2`);
     html=html.replace(/(<link rel="canonical" id="canonical" href=")[^"]*(")/,`$1${url}$2`);
+    html=html.replace(/(<meta name="twitter:card" content=")[^"]*(")/,`$1${img?"summary_large_image":"summary"}$2`);
+    html=html.replace(/(<meta name="twitter:title" id="twTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
+    html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
+    html=html.replace(/(<meta name="twitter:image" id="twImage" content=")[^"]*(")/,`$1${img}$2`);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} - Laligurans Photo Studio">`:""}</main></noscript>\n</head>`);
     return new Response(html,{headers:{"content-type":"text/html","cache-control":"public, max-age=60"}});
   }catch(e){
