@@ -5,8 +5,7 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--background);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.55;transition:background .3s,color .3s}
 h1,h2,h3,.brand-txt strong{font-family:var(--serif)}
 img{max-width:100%}
-a{color:var(--primary-dark)}
-body.dark a{color:var(--primary)}
+a{color:var(--link)}
 [hidden]{display:none!important}
 ::selection{background:var(--primary-light);color:var(--primary-dark)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
