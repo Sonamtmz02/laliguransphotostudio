@@ -23,6 +23,9 @@ export async function onRequestGet(ctx){
     html=html.replace(/(<meta property="og:description" id="ogDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
     html=html.replace(/(<link rel="canonical" id="canonical" href=")[^"]*(")/,`$1${url}$2`);
+    html=html.replace(/(<meta name="twitter:card" content=")[^"]*(")/,`$1summary$2`);
+    html=html.replace(/(<meta name="twitter:title" id="twTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
+    html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage",name:title,description:desc,url:url})}</script>\n</head>`);
     return new Response(html,{headers:{"content-type":"text/html","cache-control":"public, max-age=60"}});
   }catch(e){
