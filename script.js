@@ -1,11 +1,11 @@
-/* LALIGURANS USER PANEL - final (share + SEO + canonical, all features preserved) */
+/* LALIGURANS USER PANEL - final (share + SEO + canonical + twitter + SPA + slug-stable) */
 const firebaseConfig = {
-  apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
-  authDomain: "laligurans-photo-studio.firebaseapp.com",
-  projectId: "laligurans-photo-studio",
-  storageBucket: "laligurans-photo-studio.firebasestorage.app",
-  messagingSenderId: "826817572339",
-  appId: "1:826817572339:web:8d2d2c8831c7a511b7f686"
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
 };
 const API_BASE = "https://laligurans-admin.pages.dev";
 const CUR = "रु.";
@@ -61,7 +61,7 @@ function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTi
 function storeName() { return (state.store && state.store.name) || "Laligurans Photo Studio"; }
 function toast(m) { let t = document.getElementById("lgToast"); if (!t) { t = document.createElement("div"); t.id = "lgToast"; t.style.cssText = "position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#221f1e;color:#fff;padding:.7rem 1.1rem;border-radius:999px;z-index:99;font-size:.8rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .3s"; document.body.appendChild(t); } t.textContent = m; t.style.opacity = "1"; clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = "0"; }, 2200); }
 
-/* SLUG + SEO */
+/* SLUG + SEO (slug stable via localStorage cache) */
 function slugify(s) { return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "item"; }
 function catSlug(c) { return slugify(c.name); }
 function assignSlugsInPlace(list) {
@@ -70,20 +70,27 @@ function assignSlugsInPlace(list) {
   const by = [...list].sort((a,b) => (a.createdAt?.toMillis?.()||0) - (b.createdAt?.toMillis?.()||0));
   const used = {};
   for (const p of by) {
-    if (cache[p.id]) {
-      p.slug = cache[p.id];
-    } else {
-      let base = slugify(p.name), s = base, n = 2;
-      while (used[s]) { s = base + "-" + n; n++; }
-      used[s] = true;
-      cache[p.id] = s;
-      p.slug = s;
-    }
+    if (cache[p.id]) { p.slug = cache[p.id]; }
+    else { let base = slugify(p.name), s = base, n = 2; while (used[s]) { s = base + "-" + n; n++; } used[s] = true; cache[p.id] = s; p.slug = s; }
     used[p.slug] = true;
   }
   try { localStorage.setItem("lgs_slug_cache", JSON.stringify(cache)); } catch {}
 }
-function setSeo(o) { document.title = o.title; const set = (sel,at,v) => { const el = document.querySelector(sel); if (el) el.setAttribute(at,v); }; set("#metaDesc","content",o.desc); set("#ogTitle","content",o.title); set("#ogDesc","content",o.desc); if (o.image) set("#ogImage","content",o.image); set("#ogType","content",o.type||"website"); set("#ogUrl","content",o.url); set("#canonical","href",o.url); }
+function setSeo(o) {
+  document.title = o.title;
+  const set = (sel,at,v) => { const el = document.querySelector(sel); if (el) el.setAttribute(at,v); };
+  set("#metaDesc","content",o.desc);
+  set("#ogTitle","content",o.title);
+  set("#ogDesc","content",o.desc);
+  if (o.image) set("#ogImage","content",o.image);
+  set("#ogType","content",o.type||"website");
+  set("#ogUrl","content",o.url);
+  set("#canonical","href",o.url);
+  set('meta[name="twitter:card"]',"content",o.image?"summary_large_image":"summary");
+  set('meta[name="twitter:title"]',"content",o.title);
+  set('meta[name="twitter:description"]',"content",o.desc);
+  if (o.image) set('meta[name="twitter:image"]',"content",o.image);
+}
 function setJsonLd(obj) { const el = $("jsonld"); if (el) el.textContent = JSON.stringify(obj); }
 function productJsonLd(p, img, url) { const cat = (state.categories||[]).find(x => x.id === p.categoryId); return { "@context":"https://schema.org", "@type":"Product", name:p.name, image: img ? [img] : [], description: p.description || p.name, category: cat ? cat.name : undefined, brand: { "@type":"Brand", name:"Laligurans Photo Studio" }, offers: { "@type":"Offer", price:Number(p.price||0), priceCurrency:"NPR", availability: p.isAvailable === false ? "https://schema.org/OutOfStock" : "https://schema.org/InStock", url:url } }; }
 
@@ -327,7 +334,8 @@ function showCategoryPage(slug) {
   const url = location.origin + "/category/" + slug;
   setSeo({ title: `${c.name} | Laligurans Photo Studio`, desc: c.description || `Explore ${c.name} from Laligurans Photo Studio.`, image: "", url });
   window.scrollTo(0,0);
-}function route() {
+}
+function route() {
   if (!state.products || !state.categories) return;
   const rl = $("routeLoader"); if (rl) rl.hidden = true;
   const path = location.pathname;
@@ -387,6 +395,26 @@ function init() {
     if (p) openShare(p);
   });
 
+  /* SPA navigation: View Details instant */
+  document.addEventListener("click", e => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest("a");
+    if (!a) return;
+    const href = a.getAttribute("href") || "";
+    if (!href || href.startsWith("#")) return;
+    let url;
+    try { url = new URL(href, location.origin); } catch { return; }
+    if (url.origin !== location.origin) return;
+    const p = url.pathname;
+    if (p.startsWith("/product/") || p.startsWith("/category/") || p === "/") {
+      e.preventDefault();
+      history.pushState({}, "", p + (url.hash || ""));
+      route();
+      if (url.hash) { const el = document.querySelector(url.hash); if (el) el.scrollIntoView({ behavior: "smooth" }); }
+    }
+  });
+  window.addEventListener("popstate", () => route());
+
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
   $("drawerClose").addEventListener("click", closeDrawers);
@@ -394,7 +422,7 @@ function init() {
   $("backdrop").addEventListener("click", closeDrawers);
   $("themeToggle").addEventListener("click", () => { const next = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark"; applyTheme(next); });
   $("searchToggle").addEventListener("click", () => {
-    if (!$("landingMain").hidden === false) { location.href = "/"; return; }
+    if ($("landingMain").hidden) { location.href = "/"; return; }
     const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus();
   });
   $("searchInput").addEventListener("input", debounce(e => { state.search = e.target.value.trim(); renderProducts(); }, 250));
@@ -466,26 +494,6 @@ function init() {
   $("shFb").addEventListener("click", () => { if (state.share) window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(state.share.url), "_blank", "noopener"); });
   $("shTg").addEventListener("click", () => { if (state.share) window.open("https://t.me/share/url?url=" + encodeURIComponent(state.share.url) + "&text=" + encodeURIComponent(state.share.title), "_blank", "noopener"); });
 
-  /* SPA navigation: View Details instant */
-  document.addEventListener("click", e => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const a = e.target.closest("a");
-    if (!a) return;
-    const href = a.getAttribute("href") || "";
-    if (!href || href.startsWith("#")) return;
-    let url;
-    try { url = new URL(href, location.origin); } catch { return; }
-    if (url.origin !== location.origin) return;
-    const p = url.pathname;
-    if (p.startsWith("/product/") || p.startsWith("/category/") || p === "/") {
-      e.preventDefault();
-      history.pushState({}, "", p + (url.hash || ""));
-      route();
-      if (url.hash) { const el = document.querySelector(url.hash); if (el) el.scrollIntoView({ behavior: "smooth" }); }
-    }
-  });
-  window.addEventListener("popstate", () => route());
-  
   /* Gallery lightbox */
   $("galleryGrid").addEventListener("click", e => { const it = e.target.closest(".g-item"); if (!it || it.dataset.idx == null) return; openLightbox(+it.dataset.idx); });
   $("lightboxClose").addEventListener("click", () => { $("lightbox").hidden = true; });
