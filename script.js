@@ -341,6 +341,12 @@ function bindLive() {
 }
 
 function init() {
+  const rl = $("routeLoader");
+  if (location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/")) {
+    $("landingMain").hidden = true;
+    if (rl) rl.hidden = false;
+  }
+  setTimeout(() => { const l = $("routeLoader"); if (l && !l.hidden) { l.hidden = true; $("landingMain").hidden = false; } }, 6000);
   loadFavs(); favCount();
   applyTheme(localStorage.getItem("lgs_theme") || "system", false);
   renderServices();
