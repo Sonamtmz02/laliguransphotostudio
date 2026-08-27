@@ -304,6 +304,7 @@ function init() {
   $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
   $("aboutModal").addEventListener("click", e => { if (e.target === $("aboutModal")) $("aboutModal").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") $("aboutModal").hidden = true; });
+ 
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
   $("drawerClose").addEventListener("click", closeDrawers);
