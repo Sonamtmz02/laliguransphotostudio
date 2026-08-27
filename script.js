@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - final */
+/* LALIGURANS USER PANEL - final polish (logic unchanged) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -37,7 +37,7 @@ const CAM = `<svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3
 const HEART = `<svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
 const SUN = `<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
 const MOON = `<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
-const state = { store: null, categories: null, products: null, sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "system", pmId: null };
+const state = { store: null, categories: null, products: null, sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "system", pmId: null, lbList: [], lbIndex: 0 };
 let db = null;
 
 function $(id) { return document.getElementById(id); }
@@ -104,6 +104,8 @@ function updateNow() {
 const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }), { threshold: .08 }) : null;
 function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el => io ? io.observe(el) : el.classList.add("in")); }
 
+function firstImage() { let u = ""; (state.gallery||[]).some(g => { const x = imgUrl(g.imageUrl); if (x) { u = x; return true; } return false; }); if (!u) (state.products||[]).some(p => { const x = imgUrl(p.imageUrl); if (x) { u = x; return true; } return false; }); return u; }
+
 function renderAnnouncements() {
   const now = Date.now();
   const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2));
@@ -131,7 +133,7 @@ function renderChips() {
   $("prodTitle").textContent = c ? c.name : "All Products";
   $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection";
 }
-const SKEL = `<div class="p-card"><div class="sk-img"></div><div class="sk-line w60"></div><div class="sk-line w40"></div><div class="sk-line w80"></div></div>`;
+const SKEL = `<div class="p-card"><div class="p-media"><div class="sk-img"></div></div><div class="sk-line w60"></div><div class="sk-line w40"></div><div class="sk-line w80"></div></div>`;
 function renderProducts() {
   const grid = $("productGrid");
   if (!state.products) { grid.innerHTML = SKEL + SKEL + SKEL + SKEL; return; }
@@ -141,23 +143,33 @@ function renderProducts() {
   grid.innerHTML = items.map(p => {
     const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const wa = productWa(p); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
     return `<article class="p-card" data-id="${p.id}">
-      ${img ? `<img src="${img}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="p-noimg">${CAM}</div>`}
+      <div class="p-media">
+        ${img ? `<img src="${img}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="p-noimg">${CAM}</div>`}
+        <button class="p-fav ${fav ? "on" : ""}" data-fav="${p.id}" aria-label="Add to wishlist">${HEART}</button>
+        ${p.isFeatured ? `<span class="badge gold float">★ Featured</span>` : ""}
+      </div>
       <div class="p-body">
         <span class="p-cat">${cat ? esc(cat.name.toUpperCase()) : "SERVICE"}</span>
-        <div class="p-top"><strong>${esc(p.name)}</strong><button class="p-fav ${fav ? "on" : ""}" data-fav="${p.id}" aria-label="Add to wishlist">${HEART}</button></div>
-        <p class="p-desc">${esc(p.description||"")}</p>
+        <strong class="p-name">${esc(p.name)}</strong>
         ${(p.sizeIds||[]).length ? `<div class="p-sizes">${p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; return `<span class="p-size">${s ? esc(s.name) : ""}${pr != null ? " · " + fmtMoney(pr) : ""}</span>`; }).join("")}</div>` : ""}
         <div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span>${wa ? `<a class="p-wa" href="${wa}" target="_blank" rel="noopener">Order</a>` : ""}</div>
-        ${p.isFeatured ? `<span class="badge gold">★ Featured</span>` : ""}${p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : ""}
+        ${p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : ""}
       </div>
     </article>`;
   }).join("");
 }
 function renderHeroVisual() {
   const imgs = [];
-  (state.gallery||[]).forEach(g => { const u = imgUrl(g.imageUrl); if (u && imgs.length < 3) imgs.push(u); });
-  if (!imgs.length) (state.products||[]).forEach(p => { const u = imgUrl(p.imageUrl); if (u && imgs.length < 3) imgs.push(u); });
-  $("heroVisual").innerHTML = imgs.length ? imgs.map((u,i) => `<span class="frame f${i+1}"><img src="${u}" alt="" ${i === 0 ? 'loading="eager"' : 'loading="lazy"'} decoding="async"></span>`).join("") : `<span class="frame motif"><i class="fl big">❀</i></span>`;
+  (state.gallery||[]).forEach(g => { const u = imgUrl(g.imageUrl); if (u && imgs.length < 2) imgs.push(u); });
+  if (!imgs.length) (state.products||[]).forEach(p => { const u = imgUrl(p.imageUrl); if (u && imgs.length < 2) imgs.push(u); });
+  $("heroVisual").innerHTML = imgs.length
+    ? `<span class="frame f1"><img src="${imgs[0]}" alt="" loading="eager" decoding="async"></span>${imgs[1] ? `<span class="frame f2"><img src="${imgs[1]}" alt="" loading="lazy" decoding="async"></span>` : ""}<span class="lens-deco"></span>`
+    : `<span class="frame f1 motif"><i class="fl big">❀</i></span>`;
+  renderStoryVisual();
+}
+function renderStoryVisual() {
+  const u = firstImage();
+  $("storyVisual").innerHTML = u ? `<span class="story-frame"><img src="${u}" alt="" loading="lazy" decoding="async"></span>` : `<span class="story-frame motif"><i class="fl big">❀</i></span>`;
 }
 function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
 function syncPmFav() { const b = $("pmFav"); if (b && state.pmId) b.classList.toggle("on", state.favs.includes(state.pmId)); }
@@ -180,8 +192,17 @@ function openProductModal(p) {
 function renderGallery() {
   const el = $("galleryGrid");
   if (!state.gallery) { el.innerHTML = `<div class="g-item"><div class="sk-img" style="aspect-ratio:1"></div></div>`.repeat(4); return; }
-  el.innerHTML = state.gallery.length ? state.gallery.map(g => { const img = imgUrl(g.imageUrl); return img ? `<div class="g-item" data-img="${img}" data-title="${esc(g.title||"")}"><img src="${img}" alt="${esc(g.title||"gallery")}" loading="lazy" decoding="async"></div>` : ""; }).join("") : `<p class="muted">❀ Gallery coming soon.</p>`;
+  state.lbList = [];
+  const html = state.gallery.map(g => {
+    const img = imgUrl(g.imageUrl);
+    if (!img) return "";
+    const idx = state.lbList.push({ img, title: g.title || "" }) - 1;
+    return `<div class="g-item" data-idx="${idx}"><img src="${img}" alt="${esc(g.title||"gallery")}" loading="lazy" decoding="async"></div>`;
+  }).join("");
+  el.innerHTML = html || `<p class="muted">❀ Gallery coming soon.</p>`;
 }
+function openLightbox(i) { state.lbIndex = i; const it = state.lbList[i]; if (!it) return; $("lightboxImg").src = it.img; $("lightboxImg").alt = it.title || "Gallery photo"; $("lightboxCount").textContent = `${i+1} / ${state.lbList.length}`; $("lightbox").hidden = false; }
+function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbIndex + d + state.lbList.length) % state.lbList.length; openLightbox(state.lbIndex); }
 function renderHours() {
   const now = ktNow(); const days = (state.hours && state.hours.days) || {};
   $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join("");
@@ -210,9 +231,14 @@ function renderStore() {
   const wan = waNumber();
   $("dPhone").textContent = s.phone || ""; $("dWaPhone").textContent = wan ? "+" + wan : "";
   const tel = s.phone ? "tel:" + s.phone.replace(/[^+\d]/g,"") : "";
-  setLink("dCall", tel); setLink("fCall", tel);
-  setLink("dWa", generalWa()); setLink("fWa", generalWa());
-  setLink("cMap", safeUrl(s.mapUrl)); setLink("fMap", safeUrl(s.mapUrl));
+  setLink("dCall", tel);
+  setLink("dWa", generalWa());
+  setLink("cMap", safeUrl(s.mapUrl));
+  $("footName").textContent = name.split(" ")[0] || name;
+  $("footTag").textContent = tag;
+  $("footAddr").textContent = s.address || "";
+  const fp = $("footPhone"); if (s.phone) { fp.href = tel; fp.textContent = s.phone; fp.hidden = false; } else fp.hidden = true;
+  setLink("footWa", generalWa());
   setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok));
   $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`;
   const mq = s.address || name;
@@ -258,10 +284,15 @@ function init() {
   $("pmClose").addEventListener("click", () => { $("productModal").hidden = true; state.pmId = null; });
   $("pmFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
   $("productModal").addEventListener("click", e => { if (e.target === $("productModal")) { $("productModal").hidden = true; state.pmId = null; } });
-  $("galleryGrid").addEventListener("click", e => { const it = e.target.closest(".g-item"); if (!it || !it.dataset.img) return; $("lightboxImg").src = it.dataset.img; $("lightbox").hidden = false; });
+  $("galleryGrid").addEventListener("click", e => { const it = e.target.closest(".g-item"); if (!it || it.dataset.idx == null) return; openLightbox(+it.dataset.idx); });
   $("lightboxClose").addEventListener("click", () => { $("lightbox").hidden = true; });
+  $("lbPrev").addEventListener("click", () => lbNav(-1));
+  $("lbNext").addEventListener("click", () => lbNav(1));
+  let lbX = null;
+  $("lightbox").addEventListener("touchstart", e => { lbX = e.touches[0].clientX; }, { passive: true });
+  $("lightbox").addEventListener("touchend", e => { if (lbX == null) return; const dx = e.changedTouches[0].clientX - lbX; if (dx > 48) lbNav(-1); else if (dx < -48) lbNav(1); lbX = null; }, { passive: true });
   $("lightbox").addEventListener("click", e => { if (e.target === $("lightbox")) $("lightbox").hidden = true; });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; closeDrawers(); } });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; closeDrawers(); } if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1); if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1); });
   revealize();
 
   if (typeof firebase === "undefined") { $("productGrid").innerHTML = `<p class="muted">Loading failed. Internet जाँच गर्नुहोस्।</p>`; return; }
