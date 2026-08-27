@@ -1,0 +1,39 @@
+const ADMIN_BASE = "https://laligurans-admin.pages.dev";
+function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
+function slugify(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"item";}
+function assignSlugs(list){const by=[...list].sort((a,b)=>(a.createdAtMs||0)-(b.createdAtMs||0));const used={};for(const p of by){let base=slugify(p.name),s=base,n=2;while(used[s]){s=base+"-"+n;n++;}used[s]=true;p.slug=s;}return list;}
+function dv(v){if(v==null)return null;if(v.stringValue!==undefined)return v.stringValue;if(v.integerValue!==undefined)return Number(v.integerValue);if(v.numberValue!==undefined)return Number(v.numberValue);if(v.booleanValue!==undefined)return v.booleanValue;if(v.timestampValue!==undefined)return v.timestampValue;if(v.arrayValue)return(v.arrayValue.values||[]).map(dv);if(v.mapValue)return df(v.mapValue.fields||{});return null;}
+function df(f){const o={};for(const k in f)o[k]=dv(f[k]);return o;}
+async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();if(o.createdAt)o.createdAtMs=Date.parse(o.createdAt)||0;out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
+function jsonld(p,cat,img,url){return {"@context":"https://schema.org","@type":"Product",name:p.name,image:img?[img]:[],description:p.description||p.name,category:cat?cat.name:undefined,brand:{"@type":"Brand",name:"Laligurans Photo Studio"},offers:{"@type":"Offer",price:Number(p.price||0),priceCurrency:"NPR",availability:p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock",url:url}};}
+export async function onRequestGet(ctx){
+  const slug=(ctx.params.slug||[]).join("/");
+  const origin=new URL(ctx.request.url).origin;
+  let html=await(await fetch(origin+"/index.html")).text();
+  try{
+    const pid=(html.match(/projectId:\s*"([^"]+)"/)||[])[1];
+    const key=(html.match(/apiKey:\s*"([^"]+)"/)||[])[1];
+    if(!pid||!key)throw 0;
+    const prods=assignSlugs((await fetchDocs(pid,key,"products")).filter(p=>p.isActive));
+    const cats=await fetchDocs(pid,key,"categories");
+    const p=prods.find(x=>x.slug===slug);
+    if(!p)return new Response("Product not found",{status:404,headers:{"content-type":"text/plain"}});
+    const cat=cats.find(c=>c.id===p.categoryId);
+    const img=p.imageUrl?(p.imageUrl.startsWith("http")?p.imageUrl:ADMIN_BASE+p.imageUrl):"";
+    const url=origin+"/product/"+p.slug;
+    const title=`${p.name} | Laligurans Photo Studio`;
+    const desc=p.description||`${p.name} from Laligurans Photo Studio, Chautara. Explore available sizes and pricing.`;
+    html=html.replace(/<title>[^<]*<\/title>/,`<title>${esc(title)}</title>`);
+    html=html.replace(/(<meta name="description" id="metaDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
+    html=html.replace(/(<meta property="og:title" id="ogTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
+    html=html.replace(/(<meta property="og:description" id="ogDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
+    html=html.replace(/(<meta property="og:type" id="ogType" content=")[^"]*(")/,`$1product$2`);
+    html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
+    html=html.replace(/(<meta property="og:image" id="ogImage" content=")[^"]*(")/,`$1${img}$2`);
+    html=html.replace(/(<link rel="canonical" id="canonical" href=")[^"]*(")/,`$1${url}$2`);
+    html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} - Laligurans Photo Studio">`:""}</main></noscript>\n</head>`);
+    return new Response(html,{headers:{"content-type":"text/html","cache-control":"public, max-age=60"}});
+  }catch(e){
+    return new Response(html,{headers:{"content-type":"text/html"}});
+  }
+}
