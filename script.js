@@ -309,9 +309,9 @@ function showCategoryPage(slug) {
   const url = location.origin + "/category/" + slug;
   setSeo({ title: `${c.name} | Laligurans Photo Studio`, desc: c.description || `Explore ${c.name} from Laligurans Photo Studio.`, image: "", url });
   window.scrollTo(0,0);
-}
-function route() {
+}function route() {
   if (!state.products || !state.categories) return;
+  const rl = $("routeLoader"); if (rl) rl.hidden = true;
   const path = location.pathname;
   const m = path.match(/^\/product\/([^\/]+)\/?$/); const c = path.match(/^\/category\/([^\/]+)\/?$/);
   if (m) showProductPage(decodeURIComponent(m[1]));
