@@ -105,7 +105,7 @@ function openProductModal(p) {
   $("pmAvail").innerHTML = (p.isAvailable === false ? `<span class="badge red">Currently unavailable</span> ` : "") + (p.isFeatured ? `<span class="badge gold">★ Featured</span>` : "");
   $("productModal").hidden = false;
 }
-function renderSizes() { $("sizeGrid").innerHTML = state.sizes.length ? state.sizes.map(s => `<div class="s-card"><strong>${esc(s.name)}</strong><span class="muted">${esc(s.dimensions||"")}</span><span>${fmtMoney(s.price)}</span></div>`).join("") : `<p class="muted">Sizes coming soon.</p>`; }
+
 function renderGallery() { $("galleryGrid").innerHTML = state.gallery.length ? state.gallery.map(g => { const img = imgUrl(g.imageUrl); return img ? `<div class="g-item" data-img="${img}" data-title="${esc(g.title||"")}"><img src="${img}" alt="${esc(g.title||"gallery")}" loading="lazy" decoding="async"></div>` : ""; }).join("") : `<p class="muted">Gallery coming soon.</p>`; }
 function renderHours() {
   const now = ktNow(); const days = (state.hours && state.hours.days) || {};
