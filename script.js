@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v8 (proprietor profile modal) */
+/* LALIGURANS USER PANEL - final (share + SEO + canonical, all features preserved) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -11,7 +11,7 @@ const API_BASE = "https://laligurans-admin.pages.dev";
 const CUR = "रु.";
 const DEFAULT_TAG = "सम्झनाको लागी फोटो, फोटोको लागी गुराँस";
 const CONTACT = { callDisplay: "011-620217", callTel: "tel:+97711620217", waDigits: "9779768385368", waDisplay: "+977 9768385368", email: "laliguranstudio@gmail.com" };
-const PROP = { name: "Surya Lal Shretha", waDigits: "9779841486925", callTel: "tel:+9779841486925" };
+const PROP = { name: "Surya Lal Shretha", waDigits: "9779841486925" };
 const DAYS = [["sunday","Sunday"],["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"]];
 const NEP_DAYS = ["आइतबार","सोमबार","मङ्गलबार","बुधबार","बिहीबार","शुक्रबार","शनिबार"];
 const NEP_MONTHS = ["वैशाख","जेठ","असार","साउन","भदौ","असोज","कात्तिक","मंसिर","पुस","माघ","फागुन","चैत"];
@@ -47,7 +47,8 @@ const CAM = `<svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3
 const HEART = `<svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
 const SUN = `<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
 const MOON = `<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
-const state = { store: null, categories: null, products: null, sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "system", pmId: null, lbList: [], lbIndex: 0 };
+const SHARE_SVG = `<svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg>`;
+const state = { store: null, categories: null, products: null, sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "system", pmId: null, lbList: [], lbIndex: 0, share: null };
 let db = null;
 
 function $(id) { return document.getElementById(id); }
@@ -58,8 +59,17 @@ function fmtMoney(n) { return `${CUR} ${Number(n||0).toLocaleString()}`; }
 function fmt12(hm) { if (!hm) return ""; let [h,m] = String(hm).split(":").map(Number); const ap = h < 12 ? "AM" : "PM"; let hh = h % 12; if (hh === 0) hh = 12; return `${hh}:${String(m).padStart(2,"0")} ${ap}`; }
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function storeName() { return (state.store && state.store.name) || "Laligurans Photo Studio"; }
+function toast(m) { let t = document.getElementById("lgToast"); if (!t) { t = document.createElement("div"); t.id = "lgToast"; t.style.cssText = "position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#221f1e;color:#fff;padding:.7rem 1.1rem;border-radius:999px;z-index:99;font-size:.8rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .3s"; document.body.appendChild(t); } t.textContent = m; t.style.opacity = "1"; clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = "0"; }, 2200); }
 
-/* WHATSAPP (direct intent fix) */
+/* SLUG + SEO */
+function slugify(s) { return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "item"; }
+function catSlug(c) { return slugify(c.name); }
+function assignSlugsInPlace(list) { const by = [...list].sort((a,b) => (a.createdAt?.toMillis?.()||0) - (b.createdAt?.toMillis?.()||0)); const used = {}; for (const p of by) { let base = slugify(p.name), s = base, n = 2; while (used[s]) { s = base + "-" + n; n++; } used[s] = true; p.slug = s; } }
+function setSeo(o) { document.title = o.title; const set = (sel,at,v) => { const el = document.querySelector(sel); if (el) el.setAttribute(at,v); }; set("#metaDesc","content",o.desc); set("#ogTitle","content",o.title); set("#ogDesc","content",o.desc); if (o.image) set("#ogImage","content",o.image); set("#ogType","content",o.type||"website"); set("#ogUrl","content",o.url); set("#canonical","href",o.url); }
+function setJsonLd(obj) { const el = $("jsonld"); if (el) el.textContent = JSON.stringify(obj); }
+function productJsonLd(p, img, url) { const cat = (state.categories||[]).find(x => x.id === p.categoryId); return { "@context":"https://schema.org", "@type":"Product", name:p.name, image: img ? [img] : [], description: p.description || p.name, category: cat ? cat.name : undefined, brand: { "@type":"Brand", name:"Laligurans Photo Studio" }, offers: { "@type":"Offer", price:Number(p.price||0), priceCurrency:"NPR", availability: p.isAvailable === false ? "https://schema.org/OutOfStock" : "https://schema.org/InStock", url:url } }; }
+
+/* WHATSAPP */
 function waNumber() { return CONTACT.waDigits; }
 function waHrefMsg(msg, digits) { return "https://wa.me/" + digits + "?text=" + encodeURIComponent(msg); }
 function waOpen(msg, digits) {
@@ -75,6 +85,7 @@ function waOpen(msg, digits) {
     window.open(web, "_blank", "noopener");
   }
 }
+function setWa(el, msg, digits) { if (!el) return; el.href = waHrefMsg(msg, digits || waNumber()); el.dataset.waMsg = msg; if (digits) el.dataset.waDigits = digits; el.hidden = false; }
 function generalWaMsg() { return `Namaste ${storeName()}! 🌺 I would like to know more about your services.`; }
 function productWaMsg(p) {
   const img = imgUrl(p.imageUrl);
@@ -83,7 +94,6 @@ function productWaMsg(p) {
   if (img) msg += `\nImage: ${img}`;
   return msg;
 }
-function setWa(el, msg, digits) { if (!el) return; el.href = waHrefMsg(msg, digits || waNumber()); el.dataset.waMsg = msg; if (digits) el.dataset.waDigits = digits; el.hidden = false; }
 
 /* THEME */
 function resolveTheme(t) { if (t === "system") return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; return t; }
@@ -164,29 +174,31 @@ function renderChips() {
   $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection";
 }
 const SKEL = `<div class="p-card"><div class="p-media"><div class="sk-img"></div></div><div class="sk-line w60"></div><div class="sk-line w40"></div><div class="sk-line w80"></div></div>`;
+function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
+function productCard(p) {
+  const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHrefMsg(msg, waNumber()); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
+  return `<article class="p-card" data-id="${p.id}">
+    <div class="p-media">${img ? `<img src="${img}" alt="${esc(p.name)} - Laligurans Photo Studio" loading="lazy" decoding="async">` : `<div class="p-noimg">${CAM}</div>`}
+      <button class="p-fav ${fav ? "on" : ""}" data-fav="${p.id}" aria-label="Add to wishlist">${HEART}</button>
+      ${p.isFeatured ? `<span class="badge gold float">★ Featured</span>` : ""}
+    </div>
+    <div class="p-body">
+      <span class="p-cat">${cat ? esc(cat.name.toUpperCase()) : "SERVICE"}</span>
+      <strong class="p-name">${esc(p.name)}</strong>
+      ${(p.sizeIds||[]).length ? `<div class="p-sizes">${p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; return `<span class="p-size">${s ? esc(s.name) : ""}${pr != null ? " · " + fmtMoney(pr) : ""}</span>`; }).join("")}</div>` : ""}
+      <div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span><a class="p-wa" href="${wa}" data-wa-msg="${esc(msg)}">Order</a></div>
+      <div class="p-extra"><a class="p-detail" href="/product/${p.slug||""}">View Details ›</a><button class="p-share" data-share="${p.slug||""}" aria-label="Share">${SHARE_SVG}</button></div>
+      ${p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : ""}
+    </div>
+  </article>`;
+}
 function renderProducts() {
   const grid = $("productGrid");
   if (!state.products) { grid.innerHTML = SKEL + SKEL + SKEL + SKEL; return; }
   const q = state.search.toLowerCase();
   const items = state.products.filter(p => (state.catFilter === "all" || p.categoryId === state.catFilter) && (!q || (p.name||"").toLowerCase().includes(q) || (p.description||"").toLowerCase().includes(q)));
   if (!items.length) { grid.innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center;padding:2rem 0">❀<br>No products found.${q ? " Try another search." : ""}</p>`; return; }
-  grid.innerHTML = items.map(p => {
-    const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHrefMsg(msg, waNumber()); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
-    return `<article class="p-card" data-id="${p.id}">
-      <div class="p-media">
-        ${img ? `<img src="${img}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="p-noimg">${CAM}</div>`}
-        <button class="p-fav ${fav ? "on" : ""}" data-fav="${p.id}" aria-label="Add to wishlist">${HEART}</button>
-        ${p.isFeatured ? `<span class="badge gold float">★ Featured</span>` : ""}
-      </div>
-      <div class="p-body">
-        <span class="p-cat">${cat ? esc(cat.name.toUpperCase()) : "SERVICE"}</span>
-        <strong class="p-name">${esc(p.name)}</strong>
-        ${(p.sizeIds||[]).length ? `<div class="p-sizes">${p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; return `<span class="p-size">${s ? esc(s.name) : ""}${pr != null ? " · " + fmtMoney(pr) : ""}</span>`; }).join("")}</div>` : ""}
-        <div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span><a class="p-wa" href="${wa}" data-wa-msg="${esc(msg)}">Order</a></div>
-        ${p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : ""}
-      </div>
-    </article>`;
-  }).join("");
+  grid.innerHTML = items.map(productCard).join("");
 }
 function renderHeroVisual() {
   const imgs = [];
@@ -196,8 +208,7 @@ function renderHeroVisual() {
     ? `<span class="frame f1"><img src="${imgs[0]}" alt="" loading="eager" decoding="async"></span>${imgs[1] ? `<span class="frame f2"><img src="${imgs[1]}" alt="" loading="lazy" decoding="async"></span>` : ""}<span class="lens-deco"></span>`
     : `<span class="frame f1 motif"><i class="fl big">❀</i></span>`;
 }
-function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
-function syncPmFav() { const b = $("pmFav"); if (b && state.pmId) b.classList.toggle("on", state.favs.includes(state.pmId)); }
+function syncPmFav() { const b = $("pmFav"); if (b && state.pmId) b.classList.toggle("on", state.favs.includes(state.pmId)); const pp = $("ppFav"); if (pp && state.pmId) pp.classList.toggle("on", state.favs.includes(state.pmId)); }
 function openProductModal(p) {
   state.pmId = p.id;
   const img = imgUrl(p.imageUrl);
@@ -238,8 +249,6 @@ function renderStore() {
   const name = s.name || "Laligurans Photo Studio";
   const tag = s.tagline || DEFAULT_TAG;
   const parts = String(tag).split(",").map(x => x.trim());
-  document.title = name + " — Photo Studio";
-  $("metaDesc").setAttribute("content", `${name} — ${tag}`);
   $("brandName").textContent = name.split(" ")[0] || name;
   $("drawerName").textContent = name.split(" ")[0] || name;
   $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`;
@@ -262,15 +271,68 @@ function renderStore() {
   $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`;
   const mq = s.address || name;
   if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; }
-  $("jsonld").textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
+  if (location.pathname === "/" || location.pathname === "") {
+    const homeUrl = location.origin + "/";
+    setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl });
+    setJsonLd({ "@context":"https://schema.org", "@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
+  }
+}
+
+/* VIEWS + ROUTING */
+function showLanding() { $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; }
+function showProductPage(slug) {
+  const p = (state.products||[]).find(x => x.slug === slug);
+  if (!p) { showLanding(); return; }
+  $("landingMain").hidden = true; $("categoryView").hidden = true; $("productView").hidden = false;
+  const img = imgUrl(p.imageUrl); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
+  $("ppImg").src = img || ""; $("ppImg").alt = `${p.name} - Laligurans Photo Studio`;
+  $("ppCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE";
+  $("ppName").textContent = p.name;
+  $("ppDesc").textContent = p.description || "";
+  $("ppSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(sizePriceFor(p, s))}</span></div>`; }).join("") : "";
+  $("ppPrice").textContent = fmtMoney(p.price);
+  $("ppAvail").innerHTML = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
+  state.pmId = p.id; syncPmFav();
+  setWa($("ppWa"), productWaMsg(p));
+  const url = location.origin + "/product/" + p.slug;
+  setSeo({ title: `${p.name} | Laligurans Photo Studio`, desc: p.description || `${p.name} from Laligurans Photo Studio.`, image: img, url, type: "product" });
+  setJsonLd(productJsonLd(p, img, url));
+  window.scrollTo(0,0);
+}
+function showCategoryPage(slug) {
+  const c = (state.categories||[]).find(x => catSlug(x) === slug);
+  if (!c) { showLanding(); return; }
+  $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = false;
+  $("cvName").textContent = c.name; $("cvDesc").textContent = c.description || "";
+  const items = (state.products||[]).filter(p => p.categoryId === c.id);
+  $("cvGrid").innerHTML = items.length ? items.map(productCard).join("") : `<p class="muted">No products in this category yet.</p>`;
+  const url = location.origin + "/category/" + slug;
+  setSeo({ title: `${c.name} | Laligurans Photo Studio`, desc: c.description || `Explore ${c.name} from Laligurans Photo Studio.`, image: "", url });
+  window.scrollTo(0,0);
+}
+function route() {
+  if (!state.products || !state.categories) return;
+  const path = location.pathname;
+  const m = path.match(/^\/product\/([^\/]+)\/?$/); const c = path.match(/^\/category\/([^\/]+)\/?$/);
+  if (m) showProductPage(decodeURIComponent(m[1]));
+  else if (c) showCategoryPage(decodeURIComponent(c[1]));
+  else showLanding();
+}
+
+/* SHARE */
+function openShare(p) {
+  state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `🌺 Laligurans Photo Studio\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` };
+  $("shareTitle").textContent = p.name;
+  $("shNative").hidden = !navigator.share;
+  $("shareModal").hidden = false;
 }
 
 function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; }
 function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("backdrop").hidden = true; }
 
 function bindLive() {
-  db.collection("categories").onSnapshot(s => { state.categories = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderDrawer(); renderChips(); renderCollections(); renderProducts(); }, () => {});
-  db.collection("products").onSnapshot(s => { state.products = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderProducts(); renderCollections(); renderHeroVisual(); renderFavs(); }, () => {});
+  db.collection("categories").onSnapshot(s => { state.categories = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderDrawer(); renderChips(); renderCollections(); renderProducts(); route(); }, () => {});
+  db.collection("products").onSnapshot(s => { state.products = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); assignSlugsInPlace(state.products); renderProducts(); renderCollections(); renderHeroVisual(); renderFavs(); route(); }, () => {});
   db.collection("sizes").onSnapshot(s => { state.sizes = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderProducts(); }, () => {});
   db.collection("gallery").onSnapshot(s => { state.gallery = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(g => g.published).sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)); renderGallery(); renderHeroVisual(); }, () => {});
   db.collection("announcements").onSnapshot(s => { state.announcements = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAnnouncements(); }, () => {});
@@ -292,27 +354,39 @@ function init() {
     e.preventDefault();
     waOpen(a.dataset.waMsg || "", a.dataset.waDigits || "");
   });
+  /* Share button on cards */
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-share]");
+    if (!b) return;
+    e.stopPropagation();
+    const p = (state.products||[]).find(x => x.slug === b.dataset.share);
+    if (p) openShare(p);
+  });
 
-  /* Proprietor modal */
-  $("propCard").addEventListener("click", () => { $("propModal").hidden = false; });
-  $("propClose").addEventListener("click", () => { $("propModal").hidden = true; });
-  $("propModal").addEventListener("click", e => { if (e.target === $("propModal")) $("propModal").hidden = true; });
-  $("propWa").addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! 🌺 (Laligurans Photo Studio website बाट)`, PROP.waDigits); });
-  
-  /* About modal */
-  $("aboutBtn").addEventListener("click", () => { $("aboutModal").hidden = false; });
-  $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
-  $("aboutModal").addEventListener("click", e => { if (e.target === $("aboutModal")) $("aboutModal").hidden = true; });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") $("aboutModal").hidden = true; });
- 
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
   $("drawerClose").addEventListener("click", closeDrawers);
   $("favClose").addEventListener("click", closeDrawers);
   $("backdrop").addEventListener("click", closeDrawers);
   $("themeToggle").addEventListener("click", () => { const next = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark"; applyTheme(next); });
-  $("searchToggle").addEventListener("click", () => { const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus(); });
+  $("searchToggle").addEventListener("click", () => {
+    if (!$("landingMain").hidden === false) { location.href = "/"; return; }
+    const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus();
+  });
   $("searchInput").addEventListener("input", debounce(e => { state.search = e.target.value.trim(); renderProducts(); }, 250));
+
+  /* About modal */
+  $("aboutBtn").addEventListener("click", () => { $("aboutModal").hidden = false; });
+  $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
+  $("aboutModal").addEventListener("click", e => { if (e.target === $("aboutModal")) $("aboutModal").hidden = true; });
+
+  /* Proprietor modal */
+  $("propCard").addEventListener("click", () => { $("propModal").hidden = false; });
+  $("propClose").addEventListener("click", () => { $("propModal").hidden = true; });
+  $("propModal").addEventListener("click", e => { if (e.target === $("propModal")) $("propModal").hidden = true; });
+  $("propWa").addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! 🌺 (Laligurans Photo Studio website बाट)`, PROP.waDigits); });
+
+  /* Services */
   $("svcGrid").addEventListener("click", e => {
     const b = e.target.closest(".svc-card"); if (!b) return;
     document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b));
@@ -321,18 +395,54 @@ function init() {
     setWa($("svcWa"), `Namaste ${storeName()}! 🌺 I would like to know more about: ${s.t}`);
     $("svcActions").hidden = false;
   });
+
+  /* Chips / collections / drawer cats */
   $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); renderProducts(); });
   $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); renderProducts(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); renderProducts(); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
+
+  /* Product grid */
   $("productGrid").addEventListener("click", e => {
     const f = e.target.closest("[data-fav]"); if (f) { toggleFav(f.dataset.fav); return; }
+    if (e.target.closest("[data-share]")) return;
     if (e.target.closest("a")) return;
     const card = e.target.closest(".p-card"); if (card && card.dataset.id) { const p = (state.products||[]).find(x => x.id === card.dataset.id); if (p) openProductModal(p); }
   });
   $("pmClose").addEventListener("click", () => { $("productModal").hidden = true; state.pmId = null; });
   $("pmFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
   $("productModal").addEventListener("click", e => { if (e.target === $("productModal")) { $("productModal").hidden = true; state.pmId = null; } });
+
+  /* Product page */
+  $("ppFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
+  $("ppShare").addEventListener("click", () => { const p = (state.products||[]).find(x => x.id === state.pmId); if (p) openShare(p); });
+
+  /* Category page share */
+  $("cvShare").addEventListener("click", () => {
+    const slug = location.pathname.split("/").pop();
+    const c = (state.categories||[]).find(x => catSlug(x) === slug);
+    if (!c) return;
+    state.share = { url: location.origin + "/category/" + slug, title: `${c.name} | Laligurans Photo Studio`, msg: `🌺 Laligurans Photo Studio\n\n${c.name}\n\nView Collection:` };
+    $("shareTitle").textContent = c.name;
+    $("shNative").hidden = !navigator.share;
+    $("shareModal").hidden = false;
+  });
+
+  /* Share modal */
+  $("shareClose").addEventListener("click", () => { $("shareModal").hidden = true; });
+  $("shareModal").addEventListener("click", e => { if (e.target === $("shareModal")) $("shareModal").hidden = true; });
+  $("shNative").addEventListener("click", () => { if (navigator.share && state.share) navigator.share({ title: state.share.title, text: state.share.msg, url: state.share.url }).catch(() => {}); });
+  $("shCopy").addEventListener("click", async () => {
+    if (!state.share) return;
+    try { await navigator.clipboard.writeText(state.share.url); }
+    catch (e) { const t = document.createElement("textarea"); t.value = state.share.url; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
+    toast("Product link copied!");
+  });
+  $("shWa").addEventListener("click", () => { if (state.share) waOpen(state.share.msg + "\n" + state.share.url); });
+  $("shFb").addEventListener("click", () => { if (state.share) window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(state.share.url), "_blank", "noopener"); });
+  $("shTg").addEventListener("click", () => { if (state.share) window.open("https://t.me/share/url?url=" + encodeURIComponent(state.share.url) + "&text=" + encodeURIComponent(state.share.title), "_blank", "noopener"); });
+
+  /* Gallery lightbox */
   $("galleryGrid").addEventListener("click", e => { const it = e.target.closest(".g-item"); if (!it || it.dataset.idx == null) return; openLightbox(+it.dataset.idx); });
   $("lightboxClose").addEventListener("click", () => { $("lightbox").hidden = true; });
   $("lbPrev").addEventListener("click", () => lbNav(-1));
@@ -341,7 +451,11 @@ function init() {
   $("lightbox").addEventListener("touchstart", e => { lbX = e.touches[0].clientX; }, { passive: true });
   $("lightbox").addEventListener("touchend", e => { if (lbX == null) return; const dx = e.changedTouches[0].clientX - lbX; if (dx > 48) lbNav(-1); else if (dx < -48) lbNav(1); lbX = null; }, { passive: true });
   $("lightbox").addEventListener("click", e => { if (e.target === $("lightbox")) $("lightbox").hidden = true; });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; $("propModal").hidden = true; closeDrawers(); } if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1); if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; $("propModal").hidden = true; $("aboutModal").hidden = true; $("shareModal").hidden = true; closeDrawers(); }
+    if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1);
+    if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1);
+  });
   revealize();
 
   if (typeof firebase === "undefined") { $("productGrid").innerHTML = `<p class="muted">Loading failed. Internet जाँच गर्नुहोस्।</p>`; return; }
