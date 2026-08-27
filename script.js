@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v7 (WhatsApp 100% fix) */
+/* LALIGURANS USER PANEL - v8 (proprietor profile modal) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -11,6 +11,7 @@ const API_BASE = "https://laligurans-admin.pages.dev";
 const CUR = "रु.";
 const DEFAULT_TAG = "सम्झनाको लागी फोटो, फोटोको लागी गुराँस";
 const CONTACT = { callDisplay: "011-620217", callTel: "tel:+97711620217", waDigits: "9779768385368", waDisplay: "+977 9768385368", email: "laliguranstudio@gmail.com" };
+const PROP = { name: "Surya Lal Shretha", waDigits: "9779841486925", callTel: "tel:+9779841486925" };
 const DAYS = [["sunday","Sunday"],["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"]];
 const NEP_DAYS = ["आइतबार","सोमबार","मङ्गलबार","बुधबार","बिहीबार","शुक्रबार","शनिबार"];
 const NEP_MONTHS = ["वैशाख","जेठ","असार","साउन","भदौ","असोज","कात्तिक","मंसिर","पुस","माघ","फागुन","चैत"];
@@ -58,9 +59,22 @@ function fmt12(hm) { if (!hm) return ""; let [h,m] = String(hm).split(":").map(N
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function storeName() { return (state.store && state.store.name) || "Laligurans Photo Studio"; }
 
-/* ---------- WHATSAPP (100% fix) ---------- */
+/* WHATSAPP (direct intent fix) */
 function waNumber() { return CONTACT.waDigits; }
-function waHref(msg) { return "https://wa.me/" + waNumber() + "?text=" + encodeURIComponent(msg); }
+function waHrefMsg(msg, digits) { return "https://wa.me/" + digits + "?text=" + encodeURIComponent(msg); }
+function waOpen(msg, digits) {
+  const phone = digits || waNumber();
+  const enc = encodeURIComponent(msg);
+  const web = "https://wa.me/" + phone + "?text=" + enc;
+  const ua = navigator.userAgent || "";
+  if (/android/i.test(ua)) {
+    window.location.href = "intent://wa.me/" + phone + "?text=" + enc + "#Intent;scheme=https;package=com.whatsapp;S.browser_fallback_url=" + encodeURIComponent(web) + ";end";
+  } else if (/iphone|ipad|ipod/i.test(ua)) {
+    window.location.href = web;
+  } else {
+    window.open(web, "_blank", "noopener");
+  }
+}
 function generalWaMsg() { return `Namaste ${storeName()}! 🌺 I would like to know more about your services.`; }
 function productWaMsg(p) {
   const img = imgUrl(p.imageUrl);
@@ -69,23 +83,9 @@ function productWaMsg(p) {
   if (img) msg += `\nImage: ${img}`;
   return msg;
 }
-function waOpen(msg) {
-  const phone = waNumber();
-  const enc = encodeURIComponent(msg);
-  const web = "https://wa.me/" + phone + "?text=" + enc;
-  const ua = navigator.userAgent || "";
-  if (/android/i.test(ua)) {
-    // Direct VIEW intent → WhatsApp ले phone सहित URL पाउँछ → सिधै chat खुल्छ
-    window.location.href = "intent://wa.me/" + phone + "?text=" + enc + "#Intent;scheme=https;package=com.whatsapp;S.browser_fallback_url=" + encodeURIComponent(web) + ";end";
-  } else if (/iphone|ipad|ipod/i.test(ua)) {
-    window.location.href = web;
-  } else {
-    window.open(web, "_blank", "noopener");
-  }
-}
-function setWa(el, msg) { if (!el) return; el.href = waHref(msg); el.dataset.waMsg = msg; el.hidden = false; }
+function setWa(el, msg, digits) { if (!el) return; el.href = waHrefMsg(msg, digits || waNumber()); el.dataset.waMsg = msg; if (digits) el.dataset.waDigits = digits; el.hidden = false; }
 
-/* ---------- THEME ---------- */
+/* THEME */
 function resolveTheme(t) { if (t === "system") return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; return t; }
 function applyTheme(t, save = true) {
   state.theme = t; const r = resolveTheme(t);
@@ -96,14 +96,14 @@ function applyTheme(t, save = true) {
 }
 try { window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (state.theme === "system") applyTheme("system", false); }); } catch {}
 
-/* ---------- WISHLIST ---------- */
+/* WISHLIST */
 function loadFavs() { try { state.favs = JSON.parse(localStorage.getItem("lgs_favs") || "[]"); } catch { state.favs = []; } }
 function saveFavs() { localStorage.setItem("lgs_favs", JSON.stringify(state.favs)); }
 function favCount() { const el = $("favCount"); el.textContent = state.favs.length; el.hidden = !state.favs.length; }
 function toggleFav(id) { state.favs = state.favs.includes(id) ? state.favs.filter(x => x !== id) : [...state.favs, id]; saveFavs(); favCount(); renderProducts(); renderFavs(); syncPmFav(); }
 function renderFavs() { const items = (state.products||[]).filter(p => state.favs.includes(p.id)); $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`; }
 
-/* ---------- TIME ---------- */
+/* TIME */
 function ktParts() { return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); }
 function ktNow() { const g = t => ktParts().find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
 function toMin(v) { if (!v) return 0; const [h,m] = String(v).split(":").map(Number); return (h||0)*60+(m||0); }
@@ -132,7 +132,7 @@ function updateNow() {
 const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }), { threshold: .08 }) : null;
 function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el => io ? io.observe(el) : el.classList.add("in")); }
 
-/* ---------- RENDERS ---------- */
+/* RENDERS */
 function renderAnnouncements() {
   const now = Date.now();
   const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2));
@@ -171,7 +171,7 @@ function renderProducts() {
   const items = state.products.filter(p => (state.catFilter === "all" || p.categoryId === state.catFilter) && (!q || (p.name||"").toLowerCase().includes(q) || (p.description||"").toLowerCase().includes(q)));
   if (!items.length) { grid.innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center;padding:2rem 0">❀<br>No products found.${q ? " Try another search." : ""}</p>`; return; }
   grid.innerHTML = items.map(p => {
-    const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHref(msg); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
+    const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHrefMsg(msg, waNumber()); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
     return `<article class="p-card" data-id="${p.id}">
       <div class="p-media">
         ${img ? `<img src="${img}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="p-noimg">${CAM}</div>`}
@@ -285,13 +285,19 @@ function init() {
   updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
 
-  /* WhatsApp interceptor — सबै WA links लाई direct intent बाट खोल्छ */
+  /* WhatsApp interceptor */
   document.addEventListener("click", e => {
-    const a = e.target.closest("a.p-wa, a#dWa, a#footWa");
+    const a = e.target.closest("a.p-wa");
     if (!a) return;
     e.preventDefault();
-    waOpen(a.dataset.waMsg || "");
+    waOpen(a.dataset.waMsg || "", a.dataset.waDigits || "");
   });
+
+  /* Proprietor modal */
+  $("propCard").addEventListener("click", () => { $("propModal").hidden = false; });
+  $("propClose").addEventListener("click", () => { $("propModal").hidden = true; });
+  $("propModal").addEventListener("click", e => { if (e.target === $("propModal")) $("propModal").hidden = true; });
+  $("propWa").addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! 🌺 (Laligurans Photo Studio website बाट)`, PROP.waDigits); });
 
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
@@ -329,7 +335,7 @@ function init() {
   $("lightbox").addEventListener("touchstart", e => { lbX = e.touches[0].clientX; }, { passive: true });
   $("lightbox").addEventListener("touchend", e => { if (lbX == null) return; const dx = e.changedTouches[0].clientX - lbX; if (dx > 48) lbNav(-1); else if (dx < -48) lbNav(1); lbX = null; }, { passive: true });
   $("lightbox").addEventListener("click", e => { if (e.target === $("lightbox")) $("lightbox").hidden = true; });
-  document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; closeDrawers(); } if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1); if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; $("propModal").hidden = true; closeDrawers(); } if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1); if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1); });
   revealize();
 
   if (typeof firebase === "undefined") { $("productGrid").innerHTML = `<p class="muted">Loading failed. Internet जाँच गर्नुहोस्।</p>`; return; }
