@@ -76,7 +76,7 @@ function toggleFav(id) { state.favs = state.favs.includes(id) ? state.favs.filte
 function renderFavs() { const items = (state.products||[]).filter(p => state.favs.includes(p.id)); $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`; }
 
 function waNumber() { return CONTACT.waDigits; }
-function waHref(msg) { return "https://wa.me/" + waNumber() + "?text=" + encodeURIComponent(msg); }
+function waHref(msg) { return "https://api.whatsapp.com/send?phone=" + waNumber() + "&text=" + encodeURIComponent(msg); }
 function generalWa() { return waHref(`Namaste ${storeName()}! 🌺 I would like to know more about your services.`); }
 function productWa(p) {
   const img = imgUrl(p.imageUrl);
