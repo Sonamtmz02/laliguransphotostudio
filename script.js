@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - final polish (logic unchanged) */
+/* LALIGURANS USER PANEL - v6 (services + proprietor + fixed contacts) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -10,6 +10,8 @@ const firebaseConfig = {
 const API_BASE = "https://laligurans-admin.pages.dev";
 const CUR = "रु.";
 const DEFAULT_TAG = "सम्झनाको लागी फोटो, फोटोको लागी गुराँस";
+/* FIXED STUDIO CONTACTS */
+const CONTACT = { callDisplay: "011-620217", callTel: "tel:+97711620217", waDigits: "9779768385368", waDisplay: "+977 9768385368", email: "laliguranstudio@gmail.com" };
 const DAYS = [["sunday","Sunday"],["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"]];
 const NEP_DAYS = ["आइतबार","सोमबार","मङ्गलबार","बुधबार","बिहीबार","शुक्रबार","शनिबार"];
 const NEP_MONTHS = ["वैशाख","जेठ","असार","साउन","भदौ","असोज","कात्तिक","मंसिर","पुस","माघ","फागुन","चैत"];
@@ -33,6 +35,14 @@ function toBS(ce) {
   let m = 0; while (diff >= BS[y][m]) { diff -= BS[y][m]; m++; }
   return { y, m: m + 1, d: diff + 1 };
 }
+const SERVICES = [
+  { t: "Passport / ID Photo", d: "Instant passport & ID size photos", ic: `<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M14 9h5M14 13h5M7 16h10"/>` },
+  { t: "T-shirt, Cushion, Cup, Metal Print", d: "Custom photo prints on products", ic: `<path d="M16 4l4 3-2 3-2-1v11H8V9L6 10 4 7l4-3 2 1h4z"/>` },
+  { t: "Birthday Frame + Gift Items", d: "Frames & personalized gifts", ic: `<rect x="4" y="9" width="16" height="11" rx="2"/><path d="M12 9v11M12 9c-2.5 0-3.5-1.2-3.5-2.5S9.5 4 10.5 4 12 6.5 12 9c0-2.5.5-5 1.5-5s2 1 2 2.5S14.5 9 12 9"/>` },
+  { t: "E-passport Online Form", d: "Online form filling assistance", ic: `<path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5M9 13h6M9 17h6"/>` },
+  { t: "Wedding / Event Photography", d: "Full event coverage", ic: `<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>` },
+  { t: "More Services", d: "Ask us anything", ic: `<path d="M21 12a8 8 0 0 1-8 8H4l-2 2V12a8 8 0 0 1 8-8h3a8 8 0 0 1 8 8z"/>` }
+];
 const CAM = `<svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
 const HEART = `<svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
 const SUN = `<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
@@ -65,8 +75,8 @@ function favCount() { const el = $("favCount"); el.textContent = state.favs.leng
 function toggleFav(id) { state.favs = state.favs.includes(id) ? state.favs.filter(x => x !== id) : [...state.favs, id]; saveFavs(); favCount(); renderProducts(); renderFavs(); syncPmFav(); }
 function renderFavs() { const items = (state.products||[]).filter(p => state.favs.includes(p.id)); $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`; }
 
-function waNumber() { let d = ((state.store && state.store.phone) || "").replace(/\D/g,""); if (!d) return ""; if (!d.startsWith("977") && d.length === 10 && d.startsWith("9")) d = "977" + d; return d; }
-function waHref(msg) { const n = waNumber(); return n ? "https://wa.me/" + n + "?text=" + encodeURIComponent(msg) : ""; }
+function waNumber() { return CONTACT.waDigits; }
+function waHref(msg) { return "https://wa.me/" + waNumber() + "?text=" + encodeURIComponent(msg); }
 function generalWa() { return waHref(`Namaste ${storeName()}! 🌺 I would like to know more about your services.`); }
 function productWa(p) {
   const img = imgUrl(p.imageUrl);
@@ -104,8 +114,6 @@ function updateNow() {
 const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }), { threshold: .08 }) : null;
 function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el => io ? io.observe(el) : el.classList.add("in")); }
 
-function firstImage() { let u = ""; (state.gallery||[]).some(g => { const x = imgUrl(g.imageUrl); if (x) { u = x; return true; } return false; }); if (!u) (state.products||[]).some(p => { const x = imgUrl(p.imageUrl); if (x) { u = x; return true; } return false; }); return u; }
-
 function renderAnnouncements() {
   const now = Date.now();
   const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2));
@@ -125,6 +133,9 @@ function renderCollections() {
     const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl);
     return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`;
   }).join("");
+}
+function renderServices() {
+  $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join("");
 }
 function renderChips() {
   const cats = state.categories || [];
@@ -165,11 +176,6 @@ function renderHeroVisual() {
   $("heroVisual").innerHTML = imgs.length
     ? `<span class="frame f1"><img src="${imgs[0]}" alt="" loading="eager" decoding="async"></span>${imgs[1] ? `<span class="frame f2"><img src="${imgs[1]}" alt="" loading="lazy" decoding="async"></span>` : ""}<span class="lens-deco"></span>`
     : `<span class="frame f1 motif"><i class="fl big">❀</i></span>`;
-  renderStoryVisual();
-}
-function renderStoryVisual() {
-  const u = firstImage();
-  $("storyVisual").innerHTML = u ? `<span class="story-frame"><img src="${u}" alt="" loading="lazy" decoding="async"></span>` : `<span class="story-frame motif"><i class="fl big">❀</i></span>`;
 }
 function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
 function syncPmFav() { const b = $("pmFav"); if (b && state.pmId) b.classList.toggle("on", state.favs.includes(state.pmId)); }
@@ -223,27 +229,23 @@ function renderStore() {
   $("tagLine2").textContent = parts[1] || "";
   $("heroSub").textContent = s.about || "Premium photography, prints and frames.";
   $("greetBadge").textContent = greeting();
-  $("aboutName").textContent = name;
-  $("aboutQuote").textContent = tag;
-  $("aboutText").textContent = s.about || `${name} — quality photo services।`;
-  $("aboutAddr").hidden = !s.address; $("aboutAddr").querySelector("span").textContent = s.address || "";
-  $("aboutPhone").hidden = !s.phone; $("aboutPhone").querySelector("span").textContent = s.phone || "";
-  const wan = waNumber();
-  $("dPhone").textContent = s.phone || ""; $("dWaPhone").textContent = wan ? "+" + wan : "";
-  const tel = s.phone ? "tel:" + s.phone.replace(/[^+\d]/g,"") : "";
-  setLink("dCall", tel);
+  /* fixed contacts */
+  $("dPhone").textContent = CONTACT.callDisplay;
+  $("dCall").href = CONTACT.callTel;
+  $("dWaPhone").textContent = CONTACT.waDisplay;
   setLink("dWa", generalWa());
   setLink("cMap", safeUrl(s.mapUrl));
   $("footName").textContent = name.split(" ")[0] || name;
   $("footTag").textContent = tag;
   $("footAddr").textContent = s.address || "";
-  const fp = $("footPhone"); if (s.phone) { fp.href = tel; fp.textContent = s.phone; fp.hidden = false; } else fp.hidden = true;
+  $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay;
   setLink("footWa", generalWa());
+  $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email;
   setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok));
   $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`;
   const mq = s.address || name;
   if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; }
-  $("jsonld").textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "LocalBusiness", name, slogan: tag, telephone: s.phone || "", email: s.email || "", address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
+  $("jsonld").textContent = JSON.stringify({ "@context": "https://schema.org", "@type": "LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
 }
 
 function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; }
@@ -262,6 +264,7 @@ function bindLive() {
 function init() {
   loadFavs(); favCount();
   applyTheme(localStorage.getItem("lgs_theme") || "system", false);
+  renderServices();
   updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
@@ -272,6 +275,14 @@ function init() {
   $("themeToggle").addEventListener("click", () => { const next = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark"; applyTheme(next); });
   $("searchToggle").addEventListener("click", () => { const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus(); });
   $("searchInput").addEventListener("input", debounce(e => { state.search = e.target.value.trim(); renderProducts(); }, 250));
+  $("svcGrid").addEventListener("click", e => {
+    const b = e.target.closest(".svc-card"); if (!b) return;
+    document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b));
+    const s = SERVICES[+b.dataset.svc];
+    $("svcName").textContent = s.t;
+    $("svcWa").href = waHref(`Namaste ${storeName()}! 🌺 I would like to know more about: ${s.t}`);
+    $("svcActions").hidden = false;
+  });
   $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); renderProducts(); });
   $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); renderProducts(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); renderProducts(); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
