@@ -148,7 +148,7 @@ function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").c
 function bindLive() {
   db.collection("categories").onSnapshot(s => { state.categories = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderDrawer(); renderChips(); renderProducts(); }, () => {});
   db.collection("products").onSnapshot(s => { state.products = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderProducts(); renderFavs(); }, () => {});
-  db.collection("sizes").onSnapshot(s => { state.sizes = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderSizes(); renderProducts(); }, () => {});
+  db.collection("sizes").onSnapshot(s => { state.sizes = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderProducts(); }, () => {});
   db.collection("gallery").onSnapshot(s => { state.gallery = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(g => g.published).sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)); renderGallery(); }, () => {});
   db.collection("announcements").onSnapshot(s => { state.announcements = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAnnouncements(); }, () => {});
   db.collection("storeInfo").doc("main").onSnapshot(s => { state.store = s.exists ? s.data() : null; renderStore(); }, () => {});
