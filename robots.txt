@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://laliguransphotostudio-19d.pages.dev/sitemap.xml
