@@ -48,12 +48,13 @@ function fmt12(hm) { if (!hm) return ""; let [h,m] = String(hm).split(":").map(N
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function storeName() { return (state.store && state.store.name) || "Laligurans Photo Studio"; }
 
-function resolveTheme(t) { if (t === "system") return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; return t; }
+const SUN = `<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
+const MOON = `<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
 function applyTheme(t, save = true) {
   state.theme = t; const r = resolveTheme(t);
   document.body.classList.toggle("dark", r === "dark");
   document.body.classList.toggle("light", r === "light");
-  $("iconSun").hidden = !(r === "light"); $("iconMoon").hidden = !(r === "dark");
+  $("themeToggle").innerHTML = r === "dark" ? MOON : SUN;
   if (save) localStorage.setItem("lgs_theme", t);
 }
 try { window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (state.theme === "system") applyTheme("system", false); }); } catch {}
