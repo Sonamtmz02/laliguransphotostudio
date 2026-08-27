@@ -223,3 +223,10 @@ body.dark .pm-size span:last-child{color:var(--accent)}
 .lb-nav.next{right:.7rem}
 .lb-close{position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.12);color:#fff}
 @media(max-width:360px){.brand-txt strong{font-size:.98rem}.hero-title{font-size:1.55rem}.chip{padding:.4rem .8rem;font-size:.78rem}.svc-grid{grid-template-columns:1fr}}
+
+/* about + proprietor bio (v9) */
+.about-sec .about-text p{margin:0 0 .95rem;color:var(--text-muted);font-size:.95rem;line-height:1.85}
+.about-sec .about-text p:last-child{margin-bottom:0}
+.about-badge{display:inline-block;background:var(--primary-light);color:var(--primary-dark);border:1px solid var(--primary);border-radius:999px;padding:.4rem 1rem;font-weight:800;font-size:.72rem;margin:.2rem 0 1.1rem}
+body.dark .about-badge{color:var(--primary)}
+.prop-bio{color:var(--text-muted);font-size:.88rem;line-height:1.8;text-align:center;margin:.55rem 0}
