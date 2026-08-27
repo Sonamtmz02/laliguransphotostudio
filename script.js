@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v6 (services + proprietor + fixed contacts) */
+/* LALIGURANS USER PANEL - v7 (WhatsApp 100% fix) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -10,7 +10,6 @@ const firebaseConfig = {
 const API_BASE = "https://laligurans-admin.pages.dev";
 const CUR = "रु.";
 const DEFAULT_TAG = "सम्झनाको लागी फोटो, फोटोको लागी गुराँस";
-/* FIXED STUDIO CONTACTS */
 const CONTACT = { callDisplay: "011-620217", callTel: "tel:+97711620217", waDigits: "9779768385368", waDisplay: "+977 9768385368", email: "laliguranstudio@gmail.com" };
 const DAYS = [["sunday","Sunday"],["monday","Monday"],["tuesday","Tuesday"],["wednesday","Wednesday"],["thursday","Thursday"],["friday","Friday"],["saturday","Saturday"]];
 const NEP_DAYS = ["आइतबार","सोमबार","मङ्गलबार","बुधबार","बिहीबार","शुक्रबार","शनिबार"];
@@ -59,6 +58,34 @@ function fmt12(hm) { if (!hm) return ""; let [h,m] = String(hm).split(":").map(N
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 function storeName() { return (state.store && state.store.name) || "Laligurans Photo Studio"; }
 
+/* ---------- WHATSAPP (100% fix) ---------- */
+function waNumber() { return CONTACT.waDigits; }
+function waHref(msg) { return "https://wa.me/" + waNumber() + "?text=" + encodeURIComponent(msg); }
+function generalWaMsg() { return `Namaste ${storeName()}! 🌺 I would like to know more about your services.`; }
+function productWaMsg(p) {
+  const img = imgUrl(p.imageUrl);
+  let msg = `Namaste ${storeName()}! 🌺\nI want to order: ${p.name}\nPrice: ${fmtMoney(p.price)}`;
+  if ((p.sizeIds||[]).length) { msg += "\nSizes:"; p.sizeIds.forEach(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; msg += `\n- ${s ? s.name : ""}${s && s.dimensions ? " (" + s.dimensions + ")" : ""}${pr != null ? " — " + fmtMoney(pr) : ""}`; }); }
+  if (img) msg += `\nImage: ${img}`;
+  return msg;
+}
+function waOpen(msg) {
+  const phone = waNumber();
+  const enc = encodeURIComponent(msg);
+  const web = "https://wa.me/" + phone + "?text=" + enc;
+  const ua = navigator.userAgent || "";
+  if (/android/i.test(ua)) {
+    // Direct VIEW intent → WhatsApp ले phone सहित URL पाउँछ → सिधै chat खुल्छ
+    window.location.href = "intent://wa.me/" + phone + "?text=" + enc + "#Intent;scheme=https;package=com.whatsapp;S.browser_fallback_url=" + encodeURIComponent(web) + ";end";
+  } else if (/iphone|ipad|ipod/i.test(ua)) {
+    window.location.href = web;
+  } else {
+    window.open(web, "_blank", "noopener");
+  }
+}
+function setWa(el, msg) { if (!el) return; el.href = waHref(msg); el.dataset.waMsg = msg; el.hidden = false; }
+
+/* ---------- THEME ---------- */
 function resolveTheme(t) { if (t === "system") return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; return t; }
 function applyTheme(t, save = true) {
   state.theme = t; const r = resolveTheme(t);
@@ -69,23 +96,14 @@ function applyTheme(t, save = true) {
 }
 try { window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (state.theme === "system") applyTheme("system", false); }); } catch {}
 
+/* ---------- WISHLIST ---------- */
 function loadFavs() { try { state.favs = JSON.parse(localStorage.getItem("lgs_favs") || "[]"); } catch { state.favs = []; } }
 function saveFavs() { localStorage.setItem("lgs_favs", JSON.stringify(state.favs)); }
 function favCount() { const el = $("favCount"); el.textContent = state.favs.length; el.hidden = !state.favs.length; }
 function toggleFav(id) { state.favs = state.favs.includes(id) ? state.favs.filter(x => x !== id) : [...state.favs, id]; saveFavs(); favCount(); renderProducts(); renderFavs(); syncPmFav(); }
 function renderFavs() { const items = (state.products||[]).filter(p => state.favs.includes(p.id)); $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`; }
 
-function waNumber() { return CONTACT.waDigits; }
-function waHref(msg) { return "https://api.whatsapp.com/send?phone=" + waNumber() + "&text=" + encodeURIComponent(msg); }
-function generalWa() { return waHref(`Namaste ${storeName()}! 🌺 I would like to know more about your services.`); }
-function productWa(p) {
-  const img = imgUrl(p.imageUrl);
-  let msg = `Namaste ${storeName()}! 🌺\nI want to order: ${p.name}\nPrice: ${fmtMoney(p.price)}`;
-  if ((p.sizeIds||[]).length) { msg += "\nSizes:"; p.sizeIds.forEach(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; msg += `\n- ${s ? s.name : ""}${s && s.dimensions ? " (" + s.dimensions + ")" : ""}${pr != null ? " — " + fmtMoney(pr) : ""}`; }); }
-  if (img) msg += `\nImage: ${img}`;
-  return waHref(msg);
-}
-
+/* ---------- TIME ---------- */
 function ktParts() { return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); }
 function ktNow() { const g = t => ktParts().find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
 function toMin(v) { if (!v) return 0; const [h,m] = String(v).split(":").map(Number); return (h||0)*60+(m||0); }
@@ -114,6 +132,7 @@ function updateNow() {
 const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }), { threshold: .08 }) : null;
 function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el => io ? io.observe(el) : el.classList.add("in")); }
 
+/* ---------- RENDERS ---------- */
 function renderAnnouncements() {
   const now = Date.now();
   const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2));
@@ -152,7 +171,7 @@ function renderProducts() {
   const items = state.products.filter(p => (state.catFilter === "all" || p.categoryId === state.catFilter) && (!q || (p.name||"").toLowerCase().includes(q) || (p.description||"").toLowerCase().includes(q)));
   if (!items.length) { grid.innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center;padding:2rem 0">❀<br>No products found.${q ? " Try another search." : ""}</p>`; return; }
   grid.innerHTML = items.map(p => {
-    const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const wa = productWa(p); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
+    const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHref(msg); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
     return `<article class="p-card" data-id="${p.id}">
       <div class="p-media">
         ${img ? `<img src="${img}" alt="${esc(p.name)}" loading="lazy" decoding="async">` : `<div class="p-noimg">${CAM}</div>`}
@@ -163,7 +182,7 @@ function renderProducts() {
         <span class="p-cat">${cat ? esc(cat.name.toUpperCase()) : "SERVICE"}</span>
         <strong class="p-name">${esc(p.name)}</strong>
         ${(p.sizeIds||[]).length ? `<div class="p-sizes">${p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; return `<span class="p-size">${s ? esc(s.name) : ""}${pr != null ? " · " + fmtMoney(pr) : ""}</span>`; }).join("")}</div>` : ""}
-        <div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span>${wa ? `<a class="p-wa" href="${wa}" target="_blank" rel="noopener">Order</a>` : ""}</div>
+        <div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span><a class="p-wa" href="${wa}" data-wa-msg="${esc(msg)}">Order</a></div>
         ${p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : ""}
       </div>
     </article>`;
@@ -189,8 +208,7 @@ function openProductModal(p) {
   $("pmDesc").textContent = p.description || "";
   $("pmSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(sizePriceFor(p, s))}</span></div>`; }).join("") : "";
   $("pmPrice").textContent = fmtMoney(p.price);
-  const wa = productWa(p);
-  $("pmWa").href = wa || "#"; $("pmWa").style.display = wa ? "" : "none";
+  setWa($("pmWa"), productWaMsg(p));
   $("pmAvail").innerHTML = (p.isAvailable === false ? `<span class="badge red">Currently unavailable</span> ` : "") + (p.isFeatured ? `<span class="badge gold">★ Featured</span>` : "");
   syncPmFav();
   $("productModal").hidden = false;
@@ -229,17 +247,16 @@ function renderStore() {
   $("tagLine2").textContent = parts[1] || "";
   $("heroSub").textContent = s.about || "Premium photography, prints and frames.";
   $("greetBadge").textContent = greeting();
-  /* fixed contacts */
   $("dPhone").textContent = CONTACT.callDisplay;
   $("dCall").href = CONTACT.callTel;
   $("dWaPhone").textContent = CONTACT.waDisplay;
-  setLink("dWa", generalWa());
+  setWa($("dWa"), generalWaMsg());
   setLink("cMap", safeUrl(s.mapUrl));
   $("footName").textContent = name.split(" ")[0] || name;
   $("footTag").textContent = tag;
   $("footAddr").textContent = s.address || "";
   $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay;
-  setLink("footWa", generalWa());
+  setWa($("footWa"), generalWaMsg());
   $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email;
   setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok));
   $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`;
@@ -267,6 +284,15 @@ function init() {
   renderServices();
   updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
+
+  /* WhatsApp interceptor — सबै WA links लाई direct intent बाट खोल्छ */
+  document.addEventListener("click", e => {
+    const a = e.target.closest("a.p-wa, a#dWa, a#footWa");
+    if (!a) return;
+    e.preventDefault();
+    waOpen(a.dataset.waMsg || "");
+  });
+
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
   $("drawerClose").addEventListener("click", closeDrawers);
@@ -280,7 +306,7 @@ function init() {
     document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b));
     const s = SERVICES[+b.dataset.svc];
     $("svcName").textContent = s.t;
-    $("svcWa").href = waHref(`Namaste ${storeName()}! 🌺 I would like to know more about: ${s.t}`);
+    setWa($("svcWa"), `Namaste ${storeName()}! 🌺 I would like to know more about: ${s.t}`);
     $("svcActions").hidden = false;
   });
   $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); renderProducts(); });
