@@ -18,7 +18,7 @@
 
 <div id="annBar" class="ann-bar" hidden></div>
 
-<header class="site-head">
+<header id="siteHead" class="site-head">
   <button id="navToggle" class="icon-btn" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
   <a class="brand" href="#home">
     <span class="brand-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><img src="/logo.png" alt="" onerror="this.style.display='none'"></span>
@@ -27,19 +27,30 @@
   <div class="head-icons">
     <button id="searchToggle" class="icon-btn" aria-label="Search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
     <button id="themeToggle" class="icon-btn" aria-label="Theme">
-      <svg id="iconSun" class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg id="iconSun" class="ic" viewBox="0 0 24 24" hidden><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       <svg id="iconMoon" class="ic" viewBox="0 0 24 24" hidden><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg id="iconAuto" class="ic" viewBox="0 0 24 24" hidden><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
     </button>
-    <button id="favToggle" class="icon-btn heart" aria-label="Favorites"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+    <button id="favToggle" class="icon-btn heart" aria-label="Wishlist">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+      <span id="favCount" class="fav-count" hidden>0</span>
+    </button>
   </div>
 </header>
 
 <div id="searchBar" class="search-bar" hidden>
-  <input id="searchInput" type="search" placeholder="Search services..." aria-label="Search" />
+  <div class="search-box">
+    <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="searchInput" type="search" placeholder="What are you looking for?" aria-label="Search" />
+  </div>
 </div>
 
 <div id="drawer" class="drawer" aria-label="Collections">
-  <div class="drawer-head"><h3>Collections</h3><button id="drawerClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div class="drawer-head">
+    <div class="drawer-brand"><span class="brand-ic"><img src="/logo.png" alt="" onerror="this.style.display='none'"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="brand-txt"><strong id="drawerName">Laligurans</strong><small>PHOTO STUDIO</small></span></div>
+    <button id="drawerClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <p class="dc-title">COLLECTIONS</p>
   <div id="drawerCats" class="drawer-cats"></div>
   <div class="drawer-contact">
     <p class="dc-title">CONTACT STUDIO</p>
@@ -48,57 +59,100 @@
   </div>
 </div>
 
-<div id="favDrawer" class="drawer right" aria-label="Favorites">
-  <div class="drawer-head"><h3>♥ Favorites</h3><button id="favClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+<div id="favDrawer" class="drawer right" aria-label="Wishlist">
+  <div class="drawer-head"><h3>Wishlist</h3><button id="favClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
   <div id="favList" class="drawer-cats"></div>
 </div>
 
 <div id="backdrop" class="backdrop" hidden></div>
 
 <main>
+  <!-- HERO -->
   <section id="home" class="hero">
-    <span id="greetBadge" class="greet">GOOD MORNING, WELCOME!</span>
-    <h1 class="hero-title"><span id="tagLine1">सम्झनाको लागी फोटो</span><span id="tagLine2" class="grad">फोटोको लागी गुराँस</span></h1>
-    <p id="heroSub" class="hero-sub">Premium photography, prints and frames.</p>
-    <a href="#services" class="btn-cta">Explore Collection</a>
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span id="greetBadge" class="greet">WELCOME</span>
+        <p id="heroKicker" class="hero-kicker"><i class="fl">❀</i> WELCOME TO LALIGURANS PHOTO STUDIO</p>
+        <h1 class="hero-title"><span id="tagLine1">सम्झनाको लागी फोटो</span><span id="tagLine2" class="grad">फोटोको लागी गुराँस</span></h1>
+        <p id="heroSub" class="hero-sub">Premium photography, prints and frames.</p>
+        <div class="hero-cta">
+          <a href="#collections" class="btn-cta">Explore Collection</a>
+          <a href="#contact" class="btn-ghost">Contact Studio</a>
+        </div>
+      </div>
+      <div id="heroVisual" class="hero-visual" aria-hidden="true"></div>
+    </div>
   </section>
 
-  <section id="services" class="section">
+  <div class="divider" aria-hidden="true">❀</div>
+
+  <!-- COLLECTIONS -->
+  <section id="collections" class="section">
     <div class="wrap">
-      <div class="sec-head"><h2 id="prodTitle">All Products</h2><p id="prodSub" class="muted">Loading collection...</p></div>
+      <div class="sec-top reveal"><p class="eyebrow">FEATURED COLLECTIONS</p><h2>Browse by Category</h2></div>
+      <div id="colGrid" class="col-grid"></div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section id="services" class="section alt">
+    <div class="wrap">
+      <div class="sec-head reveal"><div><p class="eyebrow">OUR SERVICES</p><h2 id="prodTitle">All Products</h2><p id="prodSub" class="muted">Loading collection...</p></div></div>
       <div id="catChips" class="chips"></div>
       <div id="productGrid" class="p-grid"></div>
     </div>
   </section>
 
-  <section id="gallery" class="section">
-    <div class="wrap"><h2>Gallery</h2><p class="muted">फोटो tap गरेर ठूलो हेर्नुहोस्।</p><div id="galleryGrid" class="g-grid"></div></div>
-  </section>
-
-  <section id="about" class="section">
+  <!-- STORY -->
+  <section id="about" class="section story">
     <div class="wrap narrow">
-      <div class="about-brand"><span class="brand-ic big"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><h2 id="aboutName">Laligurans</h2></div>
-      <p id="aboutTag" class="about-tag">Framing Your Beautiful Memories.</p>
-      <p id="aboutAddr" class="about-line"><svg class="ic sm" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> <span></span></p>
-      <p id="aboutPhone" class="about-line"><svg class="ic sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> <span></span></p>
-      <p id="aboutWa" class="about-line"><svg class="ic sm wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> <span></span></p>
+      <p class="eyebrow reveal">OUR STORY</p>
+      <h2 class="reveal">Turning Moments Into Memories</h2>
+      <blockquote id="aboutQuote" class="quote reveal">सम्झनाको लागी फोटो, फोटोको लागी गुराँस</blockquote>
+      <p id="aboutText" class="about-text reveal"></p>
+      <div class="about-brand reveal"><span class="brand-ic big"><img src="/logo.png" alt="" onerror="this.style.display='none'"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><strong id="aboutName">Laligurans Photo Studio</strong></div>
+      <p id="aboutAddr" class="about-line reveal"><svg class="ic sm" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> <span></span></p>
+      <p id="aboutPhone" class="about-line reveal"><svg class="ic sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> <span></span></p>
     </div>
   </section>
 
+  <!-- GALLERY -->
+  <section id="gallery" class="section alt">
+    <div class="wrap">
+      <div class="sec-top reveal"><p class="eyebrow">PORTFOLIO</p><h2>Gallery</h2><p class="muted">फोटो tap गरेर ठूलो हेर्नुहोस्।</p></div>
+      <div id="galleryGrid" class="g-grid"></div>
+    </div>
+  </section>
+
+  <!-- HOURS + MAP -->
   <section id="hours" class="section">
     <div class="wrap narrow">
-      <h2>Business Hours</h2>
+      <div class="sec-top reveal"><p class="eyebrow">VISIT US</p><h2>Business Hours</h2></div>
       <div id="hoursStatus" class="hours-status"></div>
-      <div id="hoursTable" class="hours-table"></div>
-      <div class="map-box">
+      <div id="hoursTable" class="hours-table reveal"></div>
+      <div class="map-box reveal">
         <iframe id="mapFrame" title="Studio location map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         <a id="cMap" class="btn-small-map" href="#" target="_blank" rel="noopener" hidden><svg class="ic sm" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> Maps</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact" class="section contact-sec">
+    <div class="wrap narrow">
+      <div class="sec-top reveal"><p class="eyebrow">GET IN TOUCH</p><h2>Contact Studio</h2></div>
+      <div class="c-row reveal">
+        <a id="cBtnCall" class="c-btn" href="#" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> Call</a>
+        <a id="cBtnWa" class="c-btn wa" href="#" target="_blank" rel="noopener" hidden><svg class="ic wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> WhatsApp</a>
+        <a id="cBtnMap" class="c-btn" href="#" target="_blank" rel="noopener" hidden><svg class="ic" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> Location</a>
       </div>
     </div>
   </section>
 </main>
 
 <footer class="site-foot">
+  <i class="fl">❀</i>
   <p id="footCopy" class="muted">© 2026 Laligurans Photo Studio. All rights reserved.</p>
   <div class="social-row">
     <a id="sFb" href="#" target="_blank" rel="noopener" hidden aria-label="Facebook"><svg class="ic fill" viewBox="0 0 24 24"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.2 0-1-.1-1.9-.1-1.9 0-3.2 1.2-3.2 3.3V11H9v3h2.3v7z"/></svg></a>
@@ -107,22 +161,28 @@
   </div>
 </footer>
 
-<!-- product detail modal -->
+<!-- PRODUCT MODAL -->
 <div id="productModal" class="pmodal" hidden>
   <div class="pmodal-card">
     <button id="pmClose" class="icon-btn pm-close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     <div id="pmImgWrap" class="pm-img"></div>
     <div class="pm-body">
+      <p id="pmCat" class="eyebrow"></p>
       <h3 id="pmName"></h3>
-      <p id="pmCat" class="muted"></p>
       <p id="pmDesc"></p>
       <div id="pmSizes" class="pm-sizes"></div>
-      <div class="pm-foot"><span id="pmPrice" class="p-price"></span><a id="pmWa" class="p-wa" href="#" target="_blank" rel="noopener"><svg class="ic sm" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> Order · WhatsApp</a></div>
+      <div class="pm-foot"><span id="pmPrice" class="p-price"></span>
+        <div class="pm-actions">
+          <button id="pmFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+          <a id="pmWa" class="p-wa" href="#" target="_blank" rel="noopener"><svg class="ic sm wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> Enquire</a>
+        </div>
+      </div>
       <p id="pmAvail"></p>
     </div>
   </div>
 </div>
 
+<!-- LIGHTBOX -->
 <div id="lightbox" class="lightbox" hidden>
   <img id="lightboxImg" src="" alt="Gallery photo" />
   <button id="lightboxClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
