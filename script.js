@@ -64,7 +64,25 @@ function toast(m) { let t = document.getElementById("lgToast"); if (!t) { t = do
 /* SLUG + SEO */
 function slugify(s) { return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "item"; }
 function catSlug(c) { return slugify(c.name); }
-function assignSlugsInPlace(list) { const by = [...list].sort((a,b) => (a.createdAt?.toMillis?.()||0) - (b.createdAt?.toMillis?.()||0)); const used = {}; for (const p of by) { let base = slugify(p.name), s = base, n = 2; while (used[s]) { s = base + "-" + n; n++; } used[s] = true; p.slug = s; } }
+function assignSlugsInPlace(list) {
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem("lgs_slug_cache") || "{}"); } catch { cache = {}; }
+  const by = [...list].sort((a,b) => (a.createdAt?.toMillis?.()||0) - (b.createdAt?.toMillis?.()||0));
+  const used = {};
+  for (const p of by) {
+    if (cache[p.id]) {
+      p.slug = cache[p.id];
+    } else {
+      let base = slugify(p.name), s = base, n = 2;
+      while (used[s]) { s = base + "-" + n; n++; }
+      used[s] = true;
+      cache[p.id] = s;
+      p.slug = s;
+    }
+    used[p.slug] = true;
+  }
+  try { localStorage.setItem("lgs_slug_cache", JSON.stringify(cache)); } catch {}
+}
 function setSeo(o) { document.title = o.title; const set = (sel,at,v) => { const el = document.querySelector(sel); if (el) el.setAttribute(at,v); }; set("#metaDesc","content",o.desc); set("#ogTitle","content",o.title); set("#ogDesc","content",o.desc); if (o.image) set("#ogImage","content",o.image); set("#ogType","content",o.type||"website"); set("#ogUrl","content",o.url); set("#canonical","href",o.url); }
 function setJsonLd(obj) { const el = $("jsonld"); if (el) el.textContent = JSON.stringify(obj); }
 function productJsonLd(p, img, url) { const cat = (state.categories||[]).find(x => x.id === p.categoryId); return { "@context":"https://schema.org", "@type":"Product", name:p.name, image: img ? [img] : [], description: p.description || p.name, category: cat ? cat.name : undefined, brand: { "@type":"Brand", name:"Laligurans Photo Studio" }, offers: { "@type":"Offer", price:Number(p.price||0), priceCurrency:"NPR", availability: p.isAvailable === false ? "https://schema.org/OutOfStock" : "https://schema.org/InStock", url:url } }; }
