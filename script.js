@@ -346,7 +346,7 @@ function route() {
 
 /* SHARE */
 function openShare(p) {
-  state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `🌺 Laligurans Photo Studio\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` };
+  state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` 
   $("shareTitle").textContent = p.name;
   $("shNative").hidden = !navigator.share;
   $("shareModal").hidden = false;
