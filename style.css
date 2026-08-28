@@ -262,3 +262,6 @@ body.dark .pp-price{color:var(--accent)}
 .share-opt{display:flex;flex-direction:column;gap:.4rem;align-items:center;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:.8rem .4rem;cursor:pointer;font-weight:700;font-size:.7rem;color:var(--text)}
 .share-opt .ic{width:20px;height:20px}
 .share-opt.wa{color:var(--wa)}
+
+/* description line-break fix (admin जस्तै user panel मा) */
+.p-desc, .pp-desc, #pmDesc { white-space: pre-line; }
