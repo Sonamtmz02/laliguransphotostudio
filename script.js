@@ -374,7 +374,7 @@ function init() {
   }
   setTimeout(() => { const l = $("routeLoader"); if (l && !l.hidden) { l.hidden = true; $("landingMain").hidden = false; } }, 6000);
   loadFavs(); favCount();
-  applyTheme(localStorage.getItem("lgs_theme") || "system", false);
+  applyTheme(localStorage.getItem("lgs_theme") || "light", false);
   renderServices();
   updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
