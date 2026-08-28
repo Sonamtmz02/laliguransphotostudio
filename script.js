@@ -443,7 +443,7 @@ function init() {
     document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b));
     const s = SERVICES[+b.dataset.svc];
     $("svcName").textContent = s.t;
-    setWa($("svcWa"), `Namaste ${storeName()}! 🌺 I would like to know more about: ${s.t}`);
+    setWa($("svcWa"), `Namaste ${storeName()}! I would like to know more about: ${s.t}`);
     $("svcActions").hidden = false;
   });
 
