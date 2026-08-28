@@ -111,7 +111,7 @@ function waOpen(msg, digits) {
   }
 }
 function setWa(el, msg, digits) { if (!el) return; el.href = waHrefMsg(msg, digits || waNumber()); el.dataset.waMsg = msg; if (digits) el.dataset.waDigits = digits; el.hidden = false; }
-function generalWaMsg() { return `Namaste ${storeName()}! 🌺 I would like to know more about your services.`; }
+function generalWaMsg() { return `Namaste ${storeName()}! I would like to know more about your services.`; }
 function productWaMsg(p) {
   let msg = `Namaste ${storeName()}!\nI want to order: ${p.name}\nPrice: ${fmtMoney(p.price)}`;
   if ((p.sizeIds||[]).length) { msg += "\nSizes:"; p.sizeIds.forEach(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; msg += `\n- ${s ? s.name : ""}${s && s.dimensions ? " (" + s.dimensions + ")" : ""}${pr != null ? " — " + fmtMoney(pr) : ""}`; }); }
