@@ -435,7 +435,7 @@ function init() {
   $("propCard").addEventListener("click", () => { $("propModal").hidden = false; });
   $("propClose").addEventListener("click", () => { $("propModal").hidden = true; });
   $("propModal").addEventListener("click", e => { if (e.target === $("propModal")) $("propModal").hidden = true; });
-  $("propWa").addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! 🌺 (Laligurans Photo Studio website बाट)`, PROP.waDigits); });
+  $("propWa").addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! (Laligurans Photo Studio website बाट) `, PROP.waDigits); });
 
   /* Services */
   $("svcGrid").addEventListener("click", e => {
