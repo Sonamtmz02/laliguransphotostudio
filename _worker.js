@@ -23,7 +23,7 @@ async function handleImg(path){
 async function handleSitemap(request){
   const origin=new URL(request.url).origin;
   const today=new Date().toISOString().slice(0,10);
-  const urls=[{loc:"/",last:today},{loc:"/product/",last:today}];
+  const urls=[{loc:"/",last:today}];
   let debug="ok";
   try{
     const [prods,cats]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories")]);
