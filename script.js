@@ -332,7 +332,14 @@ function init() {
   $("shNative").addEventListener("click", () => { if (navigator.share && state.share) navigator.share({ title: state.share.title, text: state.share.msg, url: state.share.url }).catch(() => {}); });
   $("shCopy").addEventListener("click", async () => { if (!state.share) return; try { await navigator.clipboard.writeText(state.share.url); } catch (e) { const t = document.createElement("textarea"); t.value = state.share.url; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); } toast("Product link copied!"); });
   $("shWa").addEventListener("click", () => { if (state.share) waOpen(state.share.msg + "\n" + state.share.url); });
-  $("shFb").addEventListener("click", () => { if (state.share) window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(state.share.url), "_blank", "noopener"); });
+  $("shFb").addEventListener("click", async () => {
+    if (!state.share) return;
+    if (navigator.share) {
+      try { await navigator.share({ title: state.share.title, text: state.share.title, url: state.share.url }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(state.share.url); toast("Link copied! Facebook मा paste गर्नुहोस्।"); } catch (e) { toast("Copy Link button प्रयोग गर्नुहोस्।"); }
+    window.open("https://www.facebook.com/", "_blank", "noopener");
+  });
   $("shTg").addEventListener("click", () => { if (state.share) window.open("https://t.me/share/url?url=" + encodeURIComponent(state.share.url) + "&text=" + encodeURIComponent(state.share.title), "_blank", "noopener"); });
 
   $("galleryGrid").addEventListener("click", e => { const it = e.target.closest(".g-item"); if (!it || it.dataset.idx == null) return; openLightbox(+it.dataset.idx); });
