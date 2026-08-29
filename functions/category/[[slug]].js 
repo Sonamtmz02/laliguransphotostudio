@@ -1,22 +1,24 @@
+/* LALIGURANS category SSR v3 */
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
 function slugify(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"item";}
 function dv(v){if(v==null)return null;if(v.stringValue!==undefined)return v.stringValue;if(v.integerValue!==undefined)return Number(v.integerValue);if(v.numberValue!==undefined)return Number(v.numberValue);if(v.booleanValue!==undefined)return v.booleanValue;if(v.timestampValue!==undefined)return v.timestampValue;if(v.arrayValue)return(v.arrayValue.values||[]).map(dv);if(v.mapValue)return df(v.mapValue.fields||{});return null;}
 function df(f){const o={};for(const k in f)o[k]=dv(f[k]);return o;}
-async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
+async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);if(!r.ok)break;const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
+async function getConfig(origin){for(const path of["/script.js","/index.html"]){try{const t=await(await fetch(origin+path)).text();const pid=(t.match(/projectId:\s*"([^"]+)"/)||[])[1];const key=(t.match(/apiKey:\s*"([^"]+)"/)||[])[1];if(pid&&key)return{pid,key};}catch(e){}}return{pid:null,key:null};}
 export async function onRequestGet(ctx){
   const slug=(ctx.params.slug||[]).join("/");
   const origin=new URL(ctx.request.url).origin;
-  let html=await(await fetch(origin+"/index.html")).text();
+  const shell=await(await fetch(origin+"/index.html")).text();
+  const {pid,key}=await getConfig(origin);
+  if(!pid||!key)return new Response(shell,{headers:{"content-type":"text/html","x-seo-debug":"config-missing"}});
   try{
-    const pid=(html.match(/projectId:\s*"([^"]+)"/)||[])[1];
-    const key=(html.match(/apiKey:\s*"([^"]+)"/)||[])[1];
-    if(!pid||!key)throw 0;
     const cats=(await fetchDocs(pid,key,"categories")).filter(c=>c.isActive);
     const c=cats.find(x=>slugify(x.name)===slug);
-    if(!c)return new Response("Category not found",{status:404,headers:{"content-type":"text/plain"}});
+    if(!c)return new Response(`<!doctype html><meta name="robots" content="noindex"><title>Category Not Found</title><h1>404 — Category Not Found</h1><p><a href="/">Back to home</a></p>`,{status:404,headers:{"content-type":"text/html"}});
     const url=origin+"/category/"+slug;
     const title=`${c.name} | Laligurans Photo Studio`;
     const desc=c.description||`Explore ${c.name} from Laligurans Photo Studio, Chautara.`;
+    let html=shell;
     html=html.replace(/<title>[^<]*<\/title>/,`<title>${esc(title)}</title>`);
     html=html.replace(/(<meta name="description" id="metaDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace(/(<meta property="og:title" id="ogTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
@@ -26,9 +28,9 @@ export async function onRequestGet(ctx){
     html=html.replace(/(<meta name="twitter:card" content=")[^"]*(")/,`$1summary$2`);
     html=html.replace(/(<meta name="twitter:title" id="twTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
-    html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage",name:title,description:desc,url:url})}</script>\n</head>`);
-    return new Response(html,{headers:{"content-type":"text/html","cache-control":"public, max-age=60"}});
+    html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage","name":title,"description":desc,"url":url})}</script>\n</head>`);
+    return new Response(html,{headers:{"content-type":"text/html","cache-control":"public, max-age=60","x-seo-debug":"ok"}});
   }catch(e){
-    return new Response(html,{headers:{"content-type":"text/html"}});
+    return new Response(shell,{status:500,headers:{"content-type":"text/html","x-seo-debug":"error"}});
   }
 }
