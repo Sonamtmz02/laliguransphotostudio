@@ -1,29 +1,22 @@
-/* LALIGURANS sitemap v3 - always XML, dynamic, cached-safe */
+/* LALIGURANS sitemap v4 - constants, always XML */
+const PROJECT_ID = "laligurans-photo-studio";
+const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 function slugify(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"item";}
 function dv(v){if(v==null)return null;if(v.stringValue!==undefined)return v.stringValue;if(v.integerValue!==undefined)return Number(v.integerValue);if(v.numberValue!==undefined)return Number(v.numberValue);if(v.booleanValue!==undefined)return v.booleanValue;if(v.timestampValue!==undefined)return v.timestampValue;if(v.arrayValue)return(v.arrayValue.values||[]).map(dv);if(v.mapValue)return df(v.mapValue.fields||{});return null;}
 function df(f){const o={};for(const k in f)o[k]=dv(f[k]);return o;}
-async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);if(!r.ok)break;const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();if(o.createdAt)o.createdAtMs=Date.parse(o.createdAt)||0;out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
+async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);if(!r.ok)throw new Error("firestore "+r.status);const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();if(o.createdAt)o.createdAtMs=Date.parse(o.createdAt)||0;out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
 function assignSlugs(list){const by=[...list].sort((a,b)=>(a.createdAtMs||0)-(b.createdAtMs||0));const used={};for(const p of by){let s=p.slug;if(!s){let base=slugify(p.name),n=2;s=base;while(used[s]){s=base+"-"+n;n++;}}while(used[s]){s=s+"-2";}used[s]=true;p.slug=s;}return list;}
-async function getConfig(origin){
-  for (const path of ["/script.js","/index.html"]) {
-    try { const t=await(await fetch(origin+path)).text(); const pid=(t.match(/projectId:\s*"([^"]+)"/)||[])[1]; const key=(t.match(/apiKey:\s*"([^"]+)"/)||[])[1]; if(pid&&key)return{pid,key}; } catch(e){}
-  }
-  return {pid:null,key:null};
-}
 export async function onRequestGet(ctx){
   const origin=new URL(ctx.request.url).origin;
   const today=new Date().toISOString().slice(0,10);
   const urls=[{loc:"/",last:today},{loc:"/product/",last:today}];
-  const {pid,key}=await getConfig(origin);
   let debug="ok";
   try{
-    if(pid&&key){
-      const [prods,cats]=await Promise.all([fetchDocs(pid,key,"products"),fetchDocs(pid,key,"categories")]);
-      const active=assignSlugs(prods.filter(p=>p.isActive));
-      for(const c of cats.filter(c=>c.isActive))urls.push({loc:"/category/"+slugify(c.name),last:today});
-      for(const p of active)urls.push({loc:"/product/"+p.slug,last:p.updatedAt?String(p.updatedAt).slice(0,10):today});
-    } else debug="config-missing";
-  }catch(e){debug="fetch-error";}
+    const [prods,cats]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories")]);
+    const active=assignSlugs(prods.filter(p=>p.isActive));
+    for(const c of cats.filter(c=>c.isActive))urls.push({loc:"/category/"+slugify(c.name),last:today});
+    for(const p of active)urls.push({loc:"/product/"+p.slug,last:p.updatedAt?String(p.updatedAt).slice(0,10):today});
+  }catch(e){debug="error:"+String(e.message||e);}
   const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`+urls.map(u=>`<url><loc>${origin}${u.loc}</loc><lastmod>${u.last}</lastmod><changefreq>${u.loc==="/"?"daily":"weekly"}</changefreq></url>`).join("\n")+`\n</urlset>`;
   return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=300","x-sitemap-debug":debug}});
 }
