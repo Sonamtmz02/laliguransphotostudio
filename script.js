@@ -334,10 +334,9 @@ function init() {
   $("shWa").addEventListener("click", () => { if (state.share) waOpen(state.share.msg + "\n" + state.share.url); });
   $("shFb").addEventListener("click", async () => {
     if (!state.share) return;
-    if (navigator.share) {
-      try { await navigator.share({ title: state.share.title, text: state.share.title, url: state.share.url }); return; } catch (e) { if (e && e.name === "AbortError") return; }
-    }
-    try { await navigator.clipboard.writeText(state.share.url); toast("Link copied! Facebook मा paste गर्नुहोस्।"); } catch (e) { toast("Copy Link button प्रयोग गर्नुहोस्।"); }
+    try { await navigator.clipboard.writeText(state.share.url); toast("Link copied! Facebook मा paste गर्नुहोस्।"); }
+    catch (e) { toast("Copy Link button ले copy गर्नुहोस्।"); }
+    $("shareModal").hidden = true;
     window.open("https://www.facebook.com/", "_blank", "noopener");
   });
   $("shTg").addEventListener("click", () => { if (state.share) window.open("https://t.me/share/url?url=" + encodeURIComponent(state.share.url) + "&text=" + encodeURIComponent(state.share.title), "_blank", "noopener"); });
