@@ -1,10 +1,12 @@
-/* LALIGURANS edge router v8 - self-inject canonical + safe www redirect */
+/* LALIGURANS edge router v9 - SSR product body + stale cache */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
 
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
+function escAttr(s){return esc(s).replaceAll("'","&#39;");}
 function slugify(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"item";}
+function fmtMoney(n){return "रु. " + Number(n||0).toLocaleString();}
 function dv(v){if(v==null)return null;if(v.stringValue!==undefined)return v.stringValue;if(v.integerValue!==undefined)return Number(v.integerValue);if(v.numberValue!==undefined)return Number(v.numberValue);if(v.booleanValue!==undefined)return v.booleanValue;if(v.timestampValue!==undefined)return v.timestampValue;if(v.arrayValue)return(v.arrayValue.values||[]).map(dv);if(v.mapValue)return df(v.mapValue.fields||{});return null;}
 function df(f){const o={};for(const k in f)o[k]=dv(f[k]);return o;}
 async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);if(!r.ok)throw new Error("firestore "+r.status);const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();if(o.createdAt)o.createdAtMs=Date.parse(o.createdAt)||0;out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
@@ -15,7 +17,7 @@ function injectCanonical(html,url){
   if(!/rel=["']canonical["']/.test(html)){html=html.replace("</head>",`<link rel="canonical" href="${url}" />\n</head>`);}
   return html;
 }
-function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8"}});}
+function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300"}});}
 function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url}};return [prod,crumbs];}
 async function shellHtml(env,request){const u=new URL("/index.html",request.url);const r=await env.ASSETS.fetch(new Request(u.toString()));return await r.text();}
 async function handleImg(path){
@@ -39,15 +41,65 @@ async function handleSitemap(request){
   const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`+urls.map(u=>`<url><loc>${origin}${u.loc}</loc><lastmod>${u.last}</lastmod><changefreq>${u.loc==="/"?"daily":"weekly"}</changefreq></url>`).join("\n")+`\n</urlset>`;
   return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=300","x-sitemap-debug":debug}});
 }
+
+/* NEW: build the full product detail HTML (name, image, price, desc, etc.) */
+function buildProductBody(p,cat,img){
+  const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
+  const catSlug = cat ? slugify(cat.name) : "";
+  const catLabel = cat ? esc(cat.name) : "Products";
+  const desc = esc(p.description || "");
+  const name = esc(p.name);
+  const price = fmtMoney(p.price || 0);
+  const availHtml = p.isAvailable === false
+    ? `<span class="badge red">Currently unavailable</span>`
+    : `<span class="badge green">Available</span>`;
+  const sizes = (p.sizeIds || []).map(id => {
+    const s = (p._sizes || []).find(x => x.id === id);
+    if (!s) return "";
+    const pr = p.sizePrices && p.sizePrices[id] != null ? p.sizePrices[id] : (s.price || 0);
+    return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(pr)}</span></div>`;
+  }).filter(Boolean).join("");
+  const sizesHtml = sizes
+    ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}`
+    : "";
+  const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
+    ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
+    : "";
+
+  return `<div class="wrap">
+    <a href="/" class="pp-back">‹ Back to Home</a>
+    <div class="pp-grid">
+      <div class="pp-media">${img ? `<img id="ppImg" src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" />` : `<img id="ppImg" alt="" />`}</div>
+      <div class="pp-info">
+        <p class="p-cat" id="ppCat">${catName}</p>
+        <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/category/${escAttr(catSlug)}">${catLabel}</a> › <span>${name}</span></nav>
+        <h1 id="ppName" class="pp-name">${name}</h1>
+        <p id="ppDesc" class="pp-desc">${desc}</p>
+        ${kwHtml}
+        <div id="ppSizes" class="pm-sizes">${sizesHtml}</div>
+        <p id="ppPrice" class="pp-price">${price}</p>
+        <p id="ppAvail">${availHtml}</p>
+        <div class="pp-actions">
+          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
+          <a id="ppWa" class="p-wa" href="#" target="_blank" rel="noopener">Enquire</a>
+        </div>
+      </div>
+    </div>
+    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
+  </div>`;
+}
+
 async function handleProduct(request,env,path){
   const slug=decodeURIComponent(path.replace(/^\/product\//,"").replace(/\/$/,""));
   const origin=new URL(request.url).origin;
   const shell=await shellHtml(env,request);
   try{
-    const [prods,cats]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories")]);
+    const [prods,cats,sizes]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories"),fetchDocs(PROJECT_ID,API_KEY,"sizes")]);
     const p=assignSlugs(prods.filter(x=>x.isActive)).find(x=>x.slug===slug);
     if(!p)return notFound(origin);
     const cat=cats.find(c=>c.id===p.categoryId);
+    p._sizes = sizes.filter(s => s.isActive);
     const img=publicImg(origin,p);
     const url=origin+"/product/"+p.slug;
     const title=`${p.name} | Laligurans Photo Studio`;
@@ -65,8 +117,13 @@ async function handleProduct(request,env,path){
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace(/(<meta name="twitter:image" id="twImage" content=")[^"]*(")/,`$1${img}$2`);
     html=injectCanonical(html,url);
+    /* Inject SSR body + un-hide productView + hide landingMain + hide routeLoader */
+    html=html.replace(/<div id="landingMain">/, `<main id="landingMain" hidden>`);
+    html=html.replace(/<div id="routeLoader"[^>]*>/, `<div id="routeLoader" hidden style="position:fixed;inset:0;display:none;background:#faf6ef;z-index:99">`);
+    html=html.replace(/<div id="productView" hidden>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<!-- CATEGORY PAGE -->/,
+      `<div id="productView">${buildProductBody(p,cat,img)}</div>\n<!-- CATEGORY PAGE -->`);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url,origin))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p><p>Availability: ${p.isAvailable===false?"Out of stock":"In stock"}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} | Laligurans Photo Studio">`:""}<p>Brand: Laligurans Photo Studio, Chautara, Sindhupalchok, Nepal</p></main></noscript>\n</head>`);
-    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60","x-seo-debug":"ok"}});
+    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-seo-debug":"ok"}});
   }catch(e){
     return new Response(shell,{status:500,headers:{"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)}});
   }
@@ -93,7 +150,7 @@ async function handleCategory(request,env,path){
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=injectCanonical(html,url);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage","name":title,"description":desc,"url":url})}</script>\n</head>`);
-    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60","x-seo-debug":"ok"}});
+    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-seo-debug":"ok"}});
   }catch(e){
     return new Response(shell,{status:500,headers:{"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)}});
   }
@@ -102,7 +159,6 @@ export default {
   async fetch(request, env, ctx){
     try{
       const url=new URL(request.url);
-      /* WWW REDIRECT (safe, no-cache) */
       if(request.method==="GET" && url.hostname==="laliguransphotostudio.com.np"){
         return new Response(null,{status:301,headers:{Location:`https://www.laliguransphotostudio.com.np${url.pathname}${url.search}`,"cache-control":"no-store"}});
       }
