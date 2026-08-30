@@ -217,11 +217,44 @@ function showLanding() { $("landingMain").hidden = false; $("productView").hidde
 async function findProductBySlug(slug) {
   let p = state.products.find(x => x.slug === slug);
   if (p) return p;
+
   try {
     const snap = await db.collection("products").where("slug", "==", slug).where("isActive", "==", true).limit(1).get();
-    if (!snap.empty) { p = { id: snap.docs[0].id, ...snap.docs[0].data() }; assignSlugsInPlace([p]); state.products.push(p); }
+    if (!snap.empty) { 
+      p = { id: snap.docs[0].id, ...snap.docs[0].data() }; 
+      assignSlugsInPlace([p]); 
+      state.products.push(p);
+      return p;
+    }
   } catch (e) {}
-  return p || null;
+
+  try {
+    const allSnap = await db.collection("products").where("isActive", "==", true).limit(500).get();
+    if (!allSnap.empty) {
+      const allProds = allSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allProds.sort((a,b) => ((a.createdAt?.toMillis?.()||0) - (b.createdAt?.toMillis?.()||0)));
+      
+      const used = {};
+      for (const prod of allProds) {
+        let s = prod.slug;
+        if (!s) {
+          let base = slugify(prod.name), n = 2;
+          s = base;
+          while (used[s]) { s = base + "-" + n; n++; }
+        }
+        while (used[s]) { s = s + "-2"; }
+        used[s] = true;
+        prod.slug = s;
+      }
+      
+      p = allProds.find(x => x.slug === slug);
+      if (p) return p;
+    }
+  } catch (e) {
+    console.error("findProductBySlug fallback error:", e);
+  }
+
+  return null;
 }
 async function showProductPage(slug) {
   const p = await findProductBySlug(slug);
