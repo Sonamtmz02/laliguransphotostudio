@@ -319,6 +319,21 @@
 
 <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script defer src="/script.js?v=2"></script>
+  <script defer src="/script.js?v=3"></script>
+  <script>
+(function(){
+  try{
+    var n = document.getElementById("ppName");
+    if (location.pathname.indexOf("/product/") === 0 && n && n.textContent && n.textContent.trim() !== "") {
+      var pv = document.getElementById("productView");
+      var lm = document.getElementById("landingMain");
+      var rl = document.getElementById("routeLoader");
+      if (pv) pv.hidden = false;
+      if (lm) lm.hidden = true;
+      if (rl) { rl.hidden = true; rl.style.display = "none"; }
+    }
+  }catch(e){}
+})();
+  </script>
 </body>
 </html>
