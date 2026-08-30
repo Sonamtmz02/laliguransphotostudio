@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v16 - SSR product/category links for Google discovery */
+/* LALIGURANS edge router v16 - SSR links + security headers + instant cache + enhanced sitemap */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -39,7 +39,6 @@ function injectCanonical(html,url){
   return html;
 }
 
-/* ===== v16: SSR crawlable links (Google + no-JS users) ===== */
 function ssrHomeLinks(payload){
   const prods=[...payload.products].sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)||String(a.name||"").localeCompare(String(b.name||""))).slice(0,12);
   return prods.map(p=>{
@@ -87,18 +86,64 @@ async function handleImg(path){
   if(!r.ok)return new Response("not found",{status:404,headers:secHeaders({})});
   return new Response(await r.arrayBuffer(),{headers:secHeaders({"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"})});
 }
+
+/* ===== ENHANCED SITEMAP: image sitemap + priority + skip "item" slug ===== */
 async function handleSitemap(request){
   const origin=new URL(request.url).origin;
   const today=new Date().toISOString().slice(0,10);
-  const urls=[{loc:"/",last:today}];
+  const urls=[];
   let debug="ok";
   try{
     const [prods,cats]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories")]);
     const active=assignSlugs(prods.filter(p=>p.isActive));
-    for(const c of cats.filter(c=>c.isActive))urls.push({loc:"/category/"+slugify(c.name),last:today});
-    for(const p of active)urls.push({loc:"/product/"+p.slug,last:p.updatedAt?String(p.updatedAt).slice(0,10):today});
+
+    /* Home - highest priority */
+    urls.push({loc:"/",last:today,cf:"daily",pr:"1.0",img:null});
+
+    /* Categories - skip slugify fail ("item") */
+    for(const c of cats.filter(c=>c.isActive)){
+      const sl=slugify(c.name);
+      if(!sl||sl==="item"){debug=debug==="ok"?"warn:skipped-cat-"+c.name:debug;continue;}
+      urls.push({loc:"/category/"+sl,last:today,cf:"weekly",pr:"0.8",img:null});
+    }
+
+    /* Products - with image for Google Images */
+    for(const p of active){
+      const img=publicImg(origin,p);
+      urls.push({
+        loc:"/product/"+p.slug,
+        last:p.updatedAt?String(p.updatedAt).slice(0,10):today,
+        cf:"weekly",
+        pr:"0.6",
+        img:img?{loc:img,title:p.name||p.slug,caption:p.description||p.name}:null
+      });
+    }
   }catch(e){debug="error:"+String(e.message||e);}
-  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`+urls.map(u=>`<url><loc>${origin}${u.loc}</loc><lastmod>${u.last}</lastmod><changefreq>${u.loc==="/"?"daily":"weekly"}</changefreq></url>`).join("\n")+`\n</urlset>`;
+
+  /* Build XML with image namespace */
+  const imgNS = urls.some(u=>u.img) ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : '';
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${imgNS}>
+${urls.map(u=>{
+  let block=`<url>
+    <loc>${origin}${u.loc}</loc>
+    <lastmod>${u.last}</lastmod>
+    <changefreq>${u.cf}</changefreq>
+    <priority>${u.pr}</priority>`;
+  if(u.img){
+    block+=`
+    <image:image>
+      <image:loc>${u.img.loc}</image:loc>
+      <image:title>${esc(u.img.title)}</image:title>
+      <image:caption>${esc(u.img.caption)}</image:caption>
+    </image:image>`;
+  }
+  block+=`
+  </url>`;
+  return block;
+}).join("\n")}
+</urlset>`;
+
   return new Response(xml,{headers:secHeaders({"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug})});
 }
 
@@ -130,7 +175,6 @@ async function handleHome(request,env,ctx){
     let html=shell;
     const heroImg=(payload.gallery[0]&&payload.gallery[0].imageUrl)||(payload.products[0]&&payload.products[0].imageUrl)||"";
     if(heroImg)html=html.replace("</head>",`<link rel="preload" as="image" href="${escAttr(heroImg)}" fetchpriority="high">\n</head>`);
-    /* v16: crawlable links inside HTML (Google + no-JS) */
     html=html.replace('<div id="productGrid" class="p-grid"></div>','<div id="productGrid" class="p-grid">'+ssrHomeLinks(payload)+'</div>');
     html=html.replace('<div id="colGrid" class="col-grid"></div>','<div id="colGrid" class="col-grid">'+ssrColLinks(payload)+'</div>');
     const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
