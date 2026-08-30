@@ -47,7 +47,8 @@ function ssrHomeLinks(payload){
   }).join("");
 }
 function ssrColLinks(payload){
-  return payload.categories.map(c=>`<a class="col-card" href="/category/${escAttr(slugify(c.name))}"><span class="col-name">${esc(c.name)}</span></a>`).join("");
+  const firstImg=(payload.products.find(p=>p.imageUrl)||{}).imageUrl||"";
+  return `<a class="col-card col-all" href="/#services">${firstImg?`<img src="${escAttr(firstImg)}" alt="All Products" loading="lazy" decoding="async">`:`<span class="col-motif">❀</span>`}<span class="col-name">All Products ❀</span></a>`+payload.categories.map(c=>`<a class="col-card" href="/category/${escAttr(slugify(c.name))}"><span class="col-name">${esc(c.name)}</span></a>`).join("");
 }
 
 async function fetchStamp(coll){
