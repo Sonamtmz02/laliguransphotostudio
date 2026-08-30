@@ -1,324 +1,325 @@
 <!DOCTYPE html>
-<html lang="ne-NP">
+<html lang="ne">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Laligurans Photo Studio — Photos, Printing & Frames</title>
-<meta name="description" id="metaDesc" content="Laligurans Photo Studio — सम्झनाको लागी फोटो, फोटोको लागी गुराँस।" />
-<meta property="og:title" id="ogTitle" content="Laligurans Photo Studio" />
-<meta property="og:description" id="ogDesc" content="सम्झनाको लागी फोटो, फोटोको लागी गुराँस।" />
-<meta property="og:type" id="ogType" content="website" />
-<meta property="og:url" id="ogUrl" content="" />
-<meta property="og:site_name" content="Laligurans Photo Studio" />
-<meta property="og:image" id="ogImage" content="" />
-<meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" id="twTitle" content="Laligurans Photo Studio" />
-<meta name="twitter:description" id="twDesc" content="सम्झनाको लागी फोटो, फोटोको लागी गुराँस।" />
-<meta name="twitter:image" id="twImage" content="" />
-<link rel="canonical" id="canonical" href="https://www.laliguransphotostudio.com.np/" />
-<link rel="icon" type="image/png" href="/logo.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lali Gurans Digital Photo Studio — Photo Studio</title>
+<meta id="metaDesc" name="description" content="सम्झनाको लागी फोटो, फोटोको लागी लाली गुराँस">
+<link id="canonical" rel="canonical" href="/">
+<meta id="ogTitle" property="og:title" content="Lali Gurans Digital Photo Studio">
+<meta id="ogDesc" property="og:description" content="Premium photography, prints and frames.">
+<meta id="ogImage" property="og:image" content="/logo.png">
+<meta id="ogType" property="og:type" content="website">
+<meta id="ogUrl" property="og:url" content="/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lali Gurans Digital Photo Studio">
+<meta name="twitter:description" content="Premium photography, prints and frames.">
+<meta name="twitter:image" content="/logo.png">
+<link rel="icon" href="/logo.png">
+<script id="jsonld" type="application/ld+json">{}</script>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<link rel="stylesheet" href="/style.css?v=2" />
-<script type="application/ld+json" id="jsonld">{}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Laligurans Photo Studio","url":"https://www.laliguransphotostudio.com.np/","logo":"https://www.laliguransphotostudio.com.np/logo.png","description":"Premium photo studio, frames, and personalized gifts in Chautara, Sindhupalchok, Nepal. 30+ years of trusted service.","foundingDate":"1995","telephone":"+97711620217","email":"laliguranstudio@gmail.com","founder":{"@type":"Person","name":"Surya Lal Shretha"},"address":{"@type":"PostalAddress","streetAddress":"Chautara","addressLocality":"Chautara","addressRegion":"Sindhupalchok","addressCountry":"NP"},"geo":{"@type":"GeoCoordinates","latitude":"27.7467","longitude":"85.6989"},"sameAs":["https://www.facebook.com/laliguransphotostudio","https://www.instagram.com/laliguransphotostudio"],"contactPoint":{"@type":"ContactPoint","telephone":"+97711620217","contactType":"customer service","availableLanguage":["Nepali","English"]}},{"@type":"WebSite","name":"Laligurans Photo Studio","url":"https://www.laliguransphotostudio.com.np/","inLanguage":"ne-NP","publisher":{"@id":"https://www.laliguransphotostudio.com.np/#organization"}},{"@type":"LocalBusiness","@id":"https://www.laliguransphotostudio.com.np/#localbusiness","name":"Laligurans Photo Studio","image":"https://www.laliguransphotostudio.com.np/logo.png","telephone":"+97711620217","email":"laliguranstudio@gmail.com","priceRange":"Rs. 200 - 5000","address":{"@type":"PostalAddress","streetAddress":"Chautara","addressLocality":"Chautara","addressRegion":"Sindhupalchok","postalCode":"45600","addressCountry":"NP"},"geo":{"@type":"GeoCoordinates","latitude":"27.7467","longitude":"85.6989"},"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"09:00","closes":"18:00"}],"sameAs":["https://www.facebook.com/laliguransphotostudio","https://www.instagram.com/laliguransphotostudio"]}]}</script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=Noto+Serif+Devanagari:wght@500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css?v=3" />
+<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script defer src="/script.js?v=3"></script>
 </head>
 <body>
 
-  <div id="routeLoader" hidden style="position:fixed;inset:0;display:grid;place-items:center;background:#faf6ef;z-index:99">
-  <div style="width:42px;height:42px;border-radius:50%;border:4px solid #f6e3e5;border-top-color:#b3232f;animation:lgspin 1s linear infinite"></div>
+<div id="routeLoader" hidden style="position:fixed;inset:0;display:grid;place-items:center;background:#faf6ef;z-index:99">
+  <div style="width:42px;height:42px;border-radius:50%;border:4px solid #f6e3e5;border-top-color:#9e1b32;animation:spin 1s linear infinite"></div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 </div>
-<style>@keyframes lgspin{to{transform:rotate(360deg)}}</style>
 
-<div id="annBar" class="ann-bar" hidden></div>
-
-<header id="siteHead" class="site-head">
-  <button id="navToggle" class="icon-btn" aria-label="Menu"><svg class="ic" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
-  <a class="brand" href="/">
-    <span class="brand-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><img src="/logo.png" alt="" onerror="this.style.display='none'"></span>
-    <span class="brand-txt"><strong id="brandName">Laligurans</strong><small>PHOTO STUDIO</small></span>
-  </a>
-  <div class="head-icons">
-    <button id="searchToggle" class="icon-btn" aria-label="Search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
-    <button id="themeToggle" class="icon-btn" aria-label="Theme"></button>
-    <button id="favToggle" class="icon-btn heart" aria-label="Wishlist">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-      <span id="favCount" class="fav-count" hidden>0</span>
-    </button>
+<!-- ══ TOP BAR ══ -->
+<div class="topbar">
+  <div class="wrap tb-in">
+    <div class="tb-left"><span class="tb-ico">🎉</span><div id="annBar" class="annbar"></div></div>
+    <div class="tb-right">
+      <a href="https://wa.me/9779768385368?text=Namaste!%20I%20want%20to%20track%20my%20order." target="_blank" rel="noopener">📦 Track Order</a>
+      <a href="#contact">🎧 Help &amp; Support</a>
+      <a href="tel:+97711620217">📞 011-620217</a>
+      <button id="themeToggle" class="tb-theme" aria-label="Theme"></button>
+    </div>
   </div>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header id="siteHead" class="site-head">
+  <div class="wrap head-in">
+    <button id="navToggle" class="ibtn ham" aria-label="Menu"><span></span><span></span><span></span></button>
+    <a class="logo" href="/">
+      <img src="/logo.png" alt="Lali Gurans">
+      <span class="logo-txt"><strong id="brandName">Lali Gurans</strong><small>DIGITAL PHOTO STUDIO</small></span>
+    </a>
+    <nav class="mainnav">
+      <a href="/" class="active">Home</a>
+      <a href="#services">Shop ⌄</a>
+      <a href="#collections">Collections</a>
+      <a href="#custom">Custom Order</a>
+      <a href="#" id="aboutBtn">About Us</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="hicons">
+      <button id="searchToggle" class="ibtn" aria-label="Search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+      <button id="accountBtn" class="ibtn" aria-label="Account"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></button>
+      <button id="favToggle" class="ibtn" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg><span id="favCount" class="count" hidden>0</span></button>
+      <a class="ibtn" href="https://wa.me/9779768385368" target="_blank" rel="noopener" aria-label="Order"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1.6"/><circle cx="19" cy="21" r="1.6"/><path d="M3 3h3l2.7 12.4a2 2 0 0 0 2 1.6h8.9a2 2 0 0 0 2-1.6L23 7H6"/></svg></a>
+    </div>
+  </div>
+  <div id="searchBar" hidden class="searchbar wrap"><input id="searchInput" type="search" placeholder="Search products… (जस्तै: Frame, Keychain)" autocomplete="off"></div>
 </header>
 
-<div id="searchBar" class="search-bar" hidden>
-  <div class="search-box">
-    <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    <input id="searchInput" type="search" placeholder="What are you looking for?" aria-label="Search" />
-  </div>
-</div>
+<main>
+<!-- ═══════════ LANDING ═══════════ -->
+<div id="landingMain">
 
-<div id="drawer" class="drawer" aria-label="Collections">
-  <div class="drawer-head">
-    <div class="drawer-brand"><span class="brand-ic"><img src="/logo.png" alt="" onerror="this.style.display='none'"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="brand-txt"><strong id="drawerName">Laligurans</strong><small>PHOTO STUDIO</small></span></div>
-    <button id="drawerClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-  </div>
-  <p class="dc-title">COLLECTIONS</p>
-  <div id="drawerCats" class="drawer-cats"></div>
-  <div class="drawer-contact">
-    <p class="dc-title">CONTACT STUDIO</p>
-    <a id="dCall" href="tel:+97711620217"><svg class="ic sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> <span id="dPhone">011-620217</span></a>
-    <a id="dWa" href="#" target="_blank" rel="noopener" hidden><svg class="ic sm wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> <span id="dWaPhone"></span></a>
-  </div>
-</div>
-
-<div id="favDrawer" class="drawer right" aria-label="Wishlist">
-  <div class="drawer-head"><h3>Wishlist</h3><button id="favClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
-  <div id="favList" class="drawer-cats"></div>
-</div>
-
-<div id="backdrop" class="backdrop" hidden></div>
-
-<main id="landingMain">
-  <section id="home" class="hero">
-    <div class="hero-bg" aria-hidden="true"></div>
-    <div class="wrap hero-grid">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-in">
       <div class="hero-copy">
-        <div class="hero-meta"><div id="nowChip" class="now-chip"></div><span id="greetBadge" class="greet">WELCOME</span></div>
-        <p id="heroKicker" class="hero-kicker"><i class="fl">❀</i> WELCOME TO LALIGURANS PHOTO STUDIO</p>
-        <h1 class="hero-title"><span id="tagLine1">सम्झनाको लागी फोटो</span><span id="tagLine2" class="grad">फोटोको लागी गुराँस</span></h1>
+        <p id="heroKicker" class="eyebrow">❀ WELCOME TO LALI GURANS DIGITAL PHOTO STUDIO</p>
+        <h1 class="hero-h1"><span id="tagLine1">सम्झनाको लागी फोटो,</span><br><span id="tagLine2">फोटोको लागी लाली गुराँस</span></h1>
         <p id="heroSub" class="hero-sub">Premium photography, prints and frames.</p>
-        <div class="hero-cta"><a href="#collections" class="btn-cta">Explore Collection</a></div>
+        <div class="hero-cta"><a class="btn-solid" href="#services">Explore Collection →</a></div>
+        <div class="hero-pills"><span id="nowChip" class="pill"></span><span id="greetBadge" class="pill pill-red"></span><span id="hoursStatus"></span></div>
+        <div class="trust">
+          <span>🏅 Premium Quality</span><span>🚚 Fast Delivery</span><span>🔒 Secure Payment</span>
+        </div>
       </div>
-      <div id="heroVisual" class="hero-visual" aria-hidden="true"></div>
+      <div class="hero-art" id="heroVisual"></div>
     </div>
   </section>
 
-  <div class="divider" aria-hidden="true">❀</div>
+  <!-- QUICK STRIP -->
+  <section class="qstrip-sec">
+    <div class="wrap"><div id="quickStrip" class="qstrip"></div></div>
+  </section>
 
-  <section id="collections" class="section">
+  <!-- COLLECTIONS -->
+  <section id="collections" class="sec">
     <div class="wrap">
-      <div class="sec-top reveal"><p class="eyebrow">FEATURED COLLECTIONS</p><h2>Browse by Category</h2></div>
+      <div class="sec-head">
+        <div><p class="eyebrow">FEATURED COLLECTIONS</p><h2>Browse by Category</h2></div>
+        <a class="btn-line" href="#services">View All Collections →</a>
+      </div>
       <div id="colGrid" class="col-grid"></div>
     </div>
   </section>
 
-  <section id="ourservices" class="section alt">
+  <!-- FEATURE BAND -->
+  <section class="band">
+    <div class="wrap band-in">
+      <div><strong>📦 High Quality Prints</strong><span>We use premium quality materials</span></div>
+      <div><strong>🎨 Custom Design</strong><span>Personalized just for you</span></div>
+      <div><strong>🚚 Fast Delivery</strong><span>Quick delivery all over Nepal</span></div>
+      <div><strong>🔒 100% Secure</strong><span>Safe &amp; secure payment</span></div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section id="services" class="sec">
     <div class="wrap">
-      <div class="sec-top reveal"><p class="eyebrow">WHAT WE DO</p><h2>Our Services</h2><p class="muted">Service मा tap गर्नुहोस् — enquiry को लागि।</p></div>
-      <div id="svcGrid" class="svc-grid"></div>
-      <div id="svcActions" class="svc-actions" hidden>
-        <p id="svcName" class="svc-name"></p>
-        <div class="svc-btns">
-          <a id="svcWa" class="p-wa" href="#" target="_blank" rel="noopener"><svg class="ic sm wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> WhatsApp Enquiry</a>
-          <a id="svcCall" class="btn-ghost2" href="tel:+97711620217"><svg class="ic sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> Call Studio</a>
-        </div>
+      <div class="sec-head">
+        <div><p class="eyebrow">POPULAR PRODUCTS</p><h2 id="prodTitle">All Products</h2><p id="prodSub" class="sec-sub">Our full collection</p></div>
       </div>
-    </div>
-  </section>
-
-  <section id="services" class="section">
-    <div class="wrap">
-      <div class="sec-head reveal"><p class="eyebrow">OUR PRODUCTS</p><h2 id="prodTitle">All Products</h2><p id="prodSub" class="muted">Loading collection...</p></div>
       <div id="catChips" class="chips"></div>
-      <div id="productGrid" class="p-grid"></div>
-      <div id="scrollSentinel" class="scroll-sentinel"></div>
-      <section id="recentSec" hidden><p class="eyebrow">RECENTLY VIEWED</p><div id="recentRow" class="recent-row"></div></section>
+      <div class="car-wrap">
+        <div id="productGrid" class="p-grid"></div>
+        <div id="scrollSentinel" class="sentinel"></div>
+        <div class="car-nav"><button id="carPrev" class="car-btn" aria-label="Previous">←</button><button id="carNext" class="car-btn" aria-label="Next">→</button></div>
+      </div>
+      <div class="recent-wrap" hidden><h3 class="recent-h">Recently Viewed</h3><div id="recentRow" class="recent-row"></div></div>
     </div>
   </section>
 
-  <section id="gallery" class="section alt">
+  <!-- CUSTOM ORDER BANNER -->
+  <section id="custom" class="custom-sec">
+    <div class="wrap custom-in">
+      <span class="custom-ic">📷</span>
+      <div><h3>Want Something Unique?</h3><p>We create custom gifts and frames as per your choice.</p><a class="btn-solid" href="https://wa.me/9779768385368?text=Namaste!%20I%20want%20to%20place%20a%20custom%20order." target="_blank" rel="noopener">Place Custom Order</a></div>
+      <div class="custom-imgs"><img src="/logo.png" alt=""></div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="ourservices" class="sec alt">
     <div class="wrap">
-      <div class="sec-top reveal"><p class="eyebrow">PORTFOLIO</p><h2>Gallery</h2><p class="muted">फोटो tap गरेर ठूलो हेर्नुहोस् · swipe गरेर अर्को।</p></div>
+      <div class="sec-head"><div><p class="eyebrow">WHAT WE DO</p><h2>Our Services</h2><p class="sec-sub">Service मा tap गर्नुहोस् — enquiry को लागि।</p></div></div>
+      <div id="svcGrid" class="svc-grid"></div>
+      <div id="svcActions" hidden class="svc-actions"><h3 id="svcName"></h3><a id="svcWa" class="btn-solid" hidden>WhatsApp Enquiry</a></div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section id="gallery" class="sec">
+    <div class="wrap">
+      <div class="sec-head"><div><p class="eyebrow">PORTFOLIO</p><h2>Gallery</h2><p class="sec-sub">फोटो tap गरेर ठूलो हेर्नुहोस् · swipe गरेर अर्को।</p></div></div>
       <div id="galleryGrid" class="g-grid"></div>
     </div>
   </section>
 
-  <section id="hours" class="section">
-    <div class="wrap narrow">
-      <div class="sec-top reveal"><p class="eyebrow">VISIT US</p><h2>Business Hours</h2></div>
-      <div id="hoursStatus" class="hours-status"></div>
-      <div id="hoursTable" class="hours-table reveal"></div>
-      <div class="map-box reveal">
-        <iframe id="mapFrame" title="Studio location map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-        <a id="cMap" class="btn-small-map" href="#" target="_blank" rel="noopener" hidden><svg class="ic sm" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> Maps</a>
+  <!-- CONTACT / HOURS -->
+  <section id="contact" class="sec alt">
+    <div class="wrap contact-in">
+      <div class="c-card">
+        <p class="eyebrow">VISIT US</p><h2>Business Hours</h2>
+        <div id="hoursStatus2"></div>
+        <div id="hoursTable" class="h-table"></div>
+      </div>
+      <div class="c-card">
+        <p class="eyebrow">MAPS</p><h2>हामी यहाँ छौं</h2>
+        <iframe id="mapFrame" class="map" title="Map" loading="lazy"></iframe>
+        <a id="cMap" class="btn-line" hidden target="_blank" rel="noopener">Open in Maps →</a>
+      </div>
+      <div class="c-card">
+        <p class="eyebrow">CONTACT STUDIO</p><h2>Get in Touch</h2>
+        <p class="c-big">011-620217</p><p class="c-mut">+977 9768385368 (WhatsApp)</p>
+        <p class="c-mut">laliguranstudio@gmail.com</p>
+        <div class="c-btns"><a class="btn-solid" href="tel:+97711620217">Call Studio</a><a class="btn-wa" href="https://wa.me/9779768385368" target="_blank" rel="noopener">WhatsApp</a></div>
       </div>
     </div>
   </section>
 
-  <section id="about" class="section alt about-cta-sec">
-    <div class="wrap narrow">
-      <div class="about-cta reveal">
-        <span class="about-cta-ic" aria-hidden="true">❀</span>
-        <div class="about-cta-txt">
-          <h2>हाम्रो स्टुडियोको कथा</h2>
-          <p class="muted">करिब ३० वर्षदेखि स्थानीय ग्राहकको विश्वाससँग जोडिएको यात्रा।</p>
-        </div>
-        <button id="aboutBtn" class="btn-cta small" type="button">About Us ›</button>
+  <!-- STORY -->
+  <section class="sec story-sec">
+    <div class="wrap story-in">
+      <div>
+        <p class="eyebrow">ABOUT US</p><h2>हाम्रो स्टुडियोको कथा</h2>
+        <p class="sec-sub">करिब ३० वर्षदेखि स्थानीय ग्राहकको विश्वाससँग जोडिएको यात्रा।</p>
+        <button id="aboutBtn2" class="btn-line" onclick="document.getElementById('aboutBtn').click()">About Us ›</button>
+      </div>
+      <div id="propCard" class="prop-card" role="button" tabindex="0">
+        <img src="/proprietor.png" alt="Proprietor">
+        <strong>सूर्यलाल श्रेष्ठ</strong><span>प्रोप्राइटर · Laligurans Photo Studio</span>
       </div>
     </div>
   </section>
+
+  <!-- NEWSLETTER -->
+  <section class="news-sec">
+    <div class="wrap news-in">
+      <div><h2>Let's Stay Connected</h2><p>Subscribe to get special offers, new arrivals and photography tips.</p></div>
+      <div class="news-form"><input type="email" placeholder="Enter your email"><button id="subscribeBtn" class="btn-cream">Subscribe</button></div>
+      <div class="news-social">
+        <a href="https://www.facebook.com/laliguransphotostudio" target="_blank" rel="noopener">f</a>
+        <a href="https://www.instagram.com/laliguransphotostudio" target="_blank" rel="noopener">◎</a>
+        <a href="https://wa.me/9779768385368" target="_blank" rel="noopener">✆</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ PRODUCT PAGE ═══════════ -->
+<div id="productView" hidden>
+  <section class="sec pp-sec">
+    <div class="wrap">
+      <nav id="ppCrumb" class="crumb"></nav>
+      <div class="pp-grid">
+        <div class="pp-imgbox"><img id="ppImg" alt=""></div>
+        <div class="pp-info">
+          <span id="ppCat" class="eyebrow">SERVICE</span>
+          <h1 id="ppName"></h1>
+          <p id="ppDesc" class="pp-desc"></p>
+          <div id="ppSizes" class="pp-sizes"></div>
+          <div id="ppPrice" class="pp-price"></div>
+          <div id="ppAvail" class="pp-avail"></div>
+          <div class="pp-btns"><a id="ppWa" class="btn-wa" hidden>Order on WhatsApp</a><button id="ppFav" class="btn-line">♥ Wishlist</button><button id="ppShare" class="btn-line">Share ⤴</button></div>
+        </div>
+      </div>
+      <section id="relSec" class="rel-sec" hidden><h3 class="recent-h">You may also like</h3><div id="ppRelated" class="p-grid small"></div></section>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════ CATEGORY PAGE ═══════════ -->
+<div id="categoryView" hidden>
+  <section class="sec">
+    <div class="wrap">
+      <div class="sec-head"><div><p class="eyebrow">COLLECTION</p><h1 id="cvName"></h1><p id="cvDesc" class="sec-sub"></p></div><button id="cvShare" class="btn-line">Share Category ⤴</button></div>
+      <div id="cvGrid" class="p-grid wrap-grid"></div>
+    </div>
+  </section>
+</div>
 </main>
 
-<!-- PRODUCT DETAIL PAGE -->
-<div id="productView" hidden>
-  <div class="wrap">
-    <a href="/" class="pp-back">‹ Back to Home</a>
-    <div class="pp-grid">
-      <div class="pp-media"><img id="ppImg" alt="" /></div>
-      <div class="pp-info">
-        <p class="p-cat" id="ppCat"></p>
-        <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"></nav>
-        <h1 id="ppName" class="pp-name"></h1>
-        <p id="ppDesc" class="pp-desc"></p>
-        <div id="ppSizes" class="pm-sizes"></div>
-        <p id="ppPrice" class="pp-price"></p>
-        <p id="ppAvail"></p>
-        <div class="pp-actions">
-          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
-          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
-          <a id="ppWa" class="p-wa" href="#" target="_blank" rel="noopener">Enquire</a>
-        </div>
-      </div>
+<!-- ══ FOOTER ══ -->
+<footer class="footer">
+  <div class="wrap foot-in">
+    <div class="f-col">
+      <img src="/logo.png" class="f-logo" alt="">
+      <strong id="footName" class="f-name">Lali Gurans</strong>
+      <p id="footTag" class="f-tag"></p>
     </div>
-    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
-  </div>
-</div>
-
-<!-- CATEGORY PAGE -->
-<div id="categoryView" hidden>
-  <div class="wrap">
-    <a href="/" class="pp-back">‹ Back to Home</a>
-    <div class="sec-top"><p class="eyebrow">COLLECTION</p><h2 id="cvName"></h2><p id="cvDesc" class="muted"></p></div>
-    <div id="cvGrid" class="p-grid"></div>
-    <div class="pp-actions"><button id="cvShare" class="btn-ghost2" type="button">Share Category</button></div>
-  </div>
-</div>
-
-<footer class="site-foot">
-  <div class="wrap foot-grid">
-    <div class="foot-brand">
-      <div class="brand-row"><span class="brand-ic"><img src="/logo.png" alt="" onerror="this.style.display='none'"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="brand-txt"><strong id="footName">Laligurans</strong><small>PHOTO STUDIO</small></span></div>
-      <p id="footTag" class="foot-tag">सम्झनाको लागी फोटो, फोटोको लागी गुराँस</p>
+    <div class="f-col"><h4>Quick Links</h4><a href="/">Home</a><a href="#services">Shop</a><a href="#collections">Collections</a><a href="#custom">Custom Order</a><a href="#" onclick="document.getElementById('aboutBtn').click();return false;">About Us</a><a href="#contact">Contact</a></div>
+    <div class="f-col"><h4>Customer Service</h4><a href="https://wa.me/9779768385368" target="_blank" rel="noopener">Track Order</a><a href="#contact">Shipping Policy</a><a href="#contact">Return Policy</a><a href="#" >Terms &amp; Conditions</a><a href="#">Privacy Policy</a><a href="#contact">Help &amp; Support</a></div>
+    <div class="f-col"><h4>Contact Us</h4>
+      <a id="footPhone" href="tel:+97711620217">📞 011-620217</a>
+      <a id="footWa" hidden>✆ WhatsApp</a>
+      <a id="footMail" href="mailto:laliguranstudio@gmail.com">✉ Email</a>
+      <span id="footAddr">📍 Itahari-20, Sunsari, Nepal</span>
+      <span>🕘 Sun – Fri (9:00 AM – 6:00 PM)</span>
+      <span class="f-social"><a id="sFb" hidden target="_blank" rel="noopener">f</a><a id="sIg" hidden target="_blank" rel="noopener">◎</a><a id="sTk" hidden target="_blank" rel="noopener">♪</a></span>
     </div>
-    <nav class="foot-links" aria-label="Quick links">
-      <p class="foot-h">Quick Links</p>
-      <a href="#home">Home</a>
-      <a href="#ourservices">Our Services</a>
-      <a href="#collections">Collections</a>
-      <a href="#about">About Us</a>
-      <a href="#gallery">Gallery</a>
-      <a href="#hours">Hours</a>
-    </nav>
-    <div class="foot-col">
-      <p class="foot-h">Contact</p>
-      <p id="footAddr" class="foot-line"></p>
-      <a id="footPhone" class="foot-line" href="tel:+97711620217">011-620217</a>
-      <a id="footWa" class="foot-line wa" href="#" target="_blank" rel="noopener" hidden>WhatsApp</a>
-      <a id="footMail" class="foot-line" href="mailto:laliguranstudio@gmail.com">laliguranstudio@gmail.com</a>
-    </div>
-    <button id="propCard" class="foot-prop" aria-label="About proprietor">
-      <span class="prop-img"><span class="prop-init">SS</span><img src="/proprietor.png" alt="Proprietor" onerror="this.style.display='none'"></span>
-      <span class="foot-prop-txt">
-        <span class="foot-h">Proprietor</span>
-        <strong class="prop-name">Surya Lal Shretha</strong>
-        <span class="foot-line">+977 9841486925</span>
-        <span class="prop-tap">Tap to view profile ›</span>
-      </span>
-    </button>
   </div>
-  <div class="foot-bottom">
-    <div class="social-row">
-      <a id="sFb" href="#" target="_blank" rel="noopener" hidden aria-label="Facebook"><svg class="ic fill" viewBox="0 0 24 24"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.2 0-1-.1-1.9-.1-1.9 0-3.2 1.2-3.2 3.3V11H9v3h2.3v7z"/></svg></a>
-      <a id="sIg" href="#" target="_blank" rel="noopener" hidden aria-label="Instagram"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></svg></a>
-      <a id="sTk" href="#" target="_blank" rel="noopener" hidden aria-label="TikTok"><svg class="ic fill" viewBox="0 0 24 24"><path d="M16.6 5.8A4.8 4.8 0 0 1 15.4 3h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.8a5.7 5.7 0 1 0 5 5.7V9.9a7.8 7.8 0 0 0 4.4 1.4v-3a4.8 4.8 0 0 1-3.4-2.5z"/></svg></a>
-    </div>
-    <p id="footCopy" class="foot-copy">© 2026 Laligurans Photo Studio. All rights reserved.</p>
-  </div>
+  <div class="foot-bottom wrap"><span id="footCopy"></span><span>Made with ❤ in Nepal 🇳🇵</span></div>
 </footer>
 
-<!-- PRODUCT MODAL -->
-<div id="productModal" class="pmodal" hidden>
-  <div class="pmodal-card">
-    <button id="pmClose" class="icon-btn pm-close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <div id="pmImgWrap" class="pm-img"></div>
-    <div class="pm-body">
-      <p id="pmCat" class="eyebrow"></p>
-      <h3 id="pmName"></h3>
-      <p id="pmDesc"></p>
-      <div id="pmSizes" class="pm-sizes"></div>
-      <div class="pm-foot"><span id="pmPrice" class="p-price"></span>
-        <div class="pm-actions">
-          <button id="pmFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
-          <a id="pmWa" class="p-wa" href="#" target="_blank" rel="noopener"><svg class="ic sm wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> Enquire</a>
-        </div>
-      </div>
-      <p id="pmAvail"></p>
-    </div>
+<!-- ══ DRAWERS ══ -->
+<div id="backdrop" hidden></div>
+<aside id="drawer" class="drawer">
+  <div class="d-head"><img src="/logo.png" alt=""><strong id="drawerName">Lali Gurans</strong><button id="drawerClose" class="ibtn">✕</button></div>
+  <div id="drawerCats" class="d-cats"></div>
+  <div class="d-foot">
+    <span id="dPhone" class="d-phone"></span>
+    <a id="dCall" class="btn-solid">Call Studio</a>
+    <span id="dWaPhone" class="d-phone"></span>
+    <a id="dWa" class="btn-wa" hidden>WhatsApp</a>
   </div>
-</div>
+</aside>
+<aside id="favDrawer" class="drawer">
+  <div class="d-head"><strong>❤ Wishlist</strong><button id="favClose" class="ibtn">✕</button></div>
+  <div id="favList" class="fav-list"></div>
+</aside>
 
-<!-- ABOUT MODAL -->
-<div id="aboutModal" class="pmodal" hidden>
-  <div class="pmodal-card">
-    <button id="aboutClose" class="icon-btn pm-close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <div class="pm-body">
-      <p class="eyebrow">ABOUT US</p>
-      <h3 class="about-title">हाम्रो बारेमा</h3>
-      <span class="about-badge">❀ ३०+ वर्षको विश्वास</span>
-      <div class="about-text">
-        <p>करिब ३० वर्षअघि सुरु भएको हाम्रो स्टुडियो आज स्थानीय ग्राहकसँग गहिरो रूपमा जोडिएको एउटा विश्वासिलो नामका रूपमा अघि बढिरहेको छ।</p>
-        <p>यी वर्षहरूमा हामीले धेरै ग्राहकका जीवनका महत्वपूर्ण क्षणहरूलाई फोटो तथा विभिन्न स्टुडियो सेवामार्फत सम्झनामा सुरक्षित गर्ने अवसर पाएका छौँ। समयसँगै प्रविधि परिवर्तन भयो, सेवाका तरिका परिवर्तन भए, तर ग्राहकलाई राम्रो सेवा दिने हाम्रो उद्देश्य भने सधैँ उस्तै रह्यो।</p>
-        <p>स्थानीय ग्राहकहरूले वर्षौँदेखि दिनुभएको माया, विश्वास र साथ नै हाम्रो सबैभन्दा ठूलो उपलब्धि हो। यही विश्वासलाई कायम राख्दै र समयअनुसार आफूलाई सुधार गर्दै हामी अझ राम्रो सेवा प्रदान गर्ने प्रयासमा निरन्तर अघि बढिरहेका छौँ।</p>
-        <p>हाम्रो लागि प्रत्येक ग्राहक केवल ग्राहक होइन, हाम्रो लामो यात्राको एउटा महत्वपूर्ण हिस्सा हो।</p>
-      </div>
-    </div>
+<!-- ══ MODALS ══ -->
+<div id="productModal" class="modal" hidden><div class="m-card">
+  <button id="pmClose" class="m-x">✕</button>
+  <div id="pmImgWrap" class="pm-img"></div>
+  <div class="pm-body">
+    <span id="pmCat" class="eyebrow"></span><h3 id="pmName"></h3><p id="pmDesc"></p>
+    <div id="pmSizes"></div><div id="pmPrice" class="pp-price"></div><div id="pmAvail"></div>
+    <div class="pp-btns"><a id="pmWa" class="btn-wa" hidden>Order on WhatsApp</a><button id="pmFav" class="btn-line">♥</button></div>
   </div>
-</div>
+</div></div>
 
-<!-- PROPRIETOR MODAL -->
-<div id="propModal" class="pmodal" hidden>
-  <div class="pmodal-card prop-card">
-    <button id="propClose" class="icon-btn pm-close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <div class="prop-head">
-      <span class="prop-img big"><span class="prop-init">स</span><img src="/proprietor.png" alt="सूर्यलाल श्रेष्ठ" onerror="this.style.display='none'"></span>
-      <h3>सूर्यलाल श्रेष्ठ</h3>
-      <p class="prop-role">प्रोप्राइटर · Laligurans Photo Studio</p>
-    </div>
-    <p class="prop-bio">विगत करिब ३० वर्षदेखि यस स्टुडियोलाई निरन्तर रूपमा सञ्चालन गर्दै आउनुभएका सूर्यलाल श्रेष्ठ यस व्यवसायका प्रोप्राइटर हुनुहुन्छ। लामो समयदेखि स्थानीय ग्राहकसँग जोडिँदै, उहाँले आफ्नो मेहनत, अनुभव र ग्राहकप्रतिको आत्मीय व्यवहारमार्फत स्टुडियोलाई यहाँसम्म ल्याउनुभएको छ।</p>
-    <p class="prop-bio">उहाँको निरन्तर प्रयास र ग्राहकको विश्वास नै यस स्टुडियोको यात्राको महत्वपूर्ण आधार हो।</p>
-    <p class="prop-phone">+977 9841486925</p>
-    <div class="prop-btns">
-      <a id="propCall" class="btn-ghost2" href="tel:+9779841486925"><svg class="ic sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> Call</a>
-      <button id="propWa" class="p-wa" type="button"><svg class="ic sm wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> WhatsApp</button>
-    </div>
+<div id="aboutModal" class="modal" hidden><div class="m-card txt">
+  <button id="aboutClose" class="m-x">✕</button>
+  <p class="eyebrow">ABOUT US</p><h3>हाम्रो बारेमा</h3>
+  <p>❀ ३०+ वर्षको विश्वास — करिब ३० वर्षअघि सुरु भएको हाम्रो स्टुडियो आज स्थानीय ग्राहकसँग गहिरो रूपमा जोडिएको विश्वासिलो नाम हो। हामीलाई प्रत्येक ग्राहक परिवारसरह हुनुहुन्छ।</p>
+</div></div>
+
+<div id="propModal" class="modal" hidden><div class="m-card txt">
+  <button id="propClose" class="m-x">✕</button>
+  <img src="/proprietor.png" class="prop-img" alt="">
+  <h3>सूर्यलाल श्रेष्ठ</h3><p>प्रोप्राइटर · Laligurans Photo Studio — विगत करिब ३० वर्षदेखि निरन्तर सेवा।</p>
+  <button id="propWa" class="btn-wa">WhatsApp</button>
+</div></div>
+
+<div id="shareModal" class="modal" hidden><div class="m-card share">
+  <button id="shareClose" class="m-x">✕</button>
+  <h3>Share</h3><p id="shareTitle" class="muted"></p>
+  <div class="share-grid">
+    <button id="shNative" class="sh-btn" hidden>🔗 Native</button>
+    <button id="shCopy" class="sh-btn">⧉ Copy Link</button>
+    <button id="shWa" class="sh-btn wa">💬 WhatsApp</button>
+    <button id="shFb" class="sh-btn">f Facebook</button>
+    <button id="shTg" class="sh-btn">✈ Telegram</button>
   </div>
-</div>
+</div></div>
 
-<!-- SHARE MODAL -->
-<div id="shareModal" class="pmodal" hidden>
-  <div class="pmodal-card share-card">
-    <button id="shareClose" class="icon-btn pm-close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <h3>Share</h3>
-    <p id="shareTitle" class="muted"></p>
-    <div class="share-grid">
-      <button id="shNative" class="share-opt" hidden><svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg>Native</button>
-      <button id="shCopy" class="share-opt"><svg class="ic" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy Link</button>
-      <button id="shWa" class="share-opt wa"><svg class="ic wa" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z"/></svg>WhatsApp</button>
-      <button id="shFb" class="share-opt"><svg class="ic fill" viewBox="0 0 24 24"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.2 0-1-.1-1.9-.1-1.9 0-3.2 1.2-3.2 3.3V11H9v3h2.3v7z"/></svg>Facebook</button>
-      <button id="shTg" class="share-opt"><svg class="ic" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Telegram</button>
-    </div>
-  </div>
-</div>
+<div id="lightbox" hidden><img id="lightboxImg" alt=""><div class="lb-bar"><button id="lbPrev">←</button><span id="lightboxCount"></span><button id="lbNext">→</button><button id="lightboxClose">✕</button></div></div>
 
-<!-- LIGHTBOX -->
-<div id="lightbox" class="lightbox" hidden>
-  <img id="lightboxImg" src="" alt="Gallery photo" />
-  <div id="lightboxCount" class="lb-count"></div>
-  <button id="lbPrev" class="lb-nav prev" aria-label="Previous"><svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-  <button id="lbNext" class="lb-nav next" aria-label="Next"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-  <button id="lightboxClose" class="icon-btn lb-close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-</div>
-
-<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script defer src="/script.js?v=2"></script>
 </body>
 </html>
