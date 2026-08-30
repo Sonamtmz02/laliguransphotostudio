@@ -395,9 +395,8 @@ function showPropPage() { hideRouteLoader(); $("landingMain").hidden = true; $("
 function route() { const path = location.pathname; const m = path.match(/^\/product\/([^\/]+)\/?$/); const c = path.match(/^\/category\/([^\/]+)\/?$/); if (m) showProductPage(decodeURIComponent(m[1])); else if (c) showCategoryPage(decodeURIComponent(c[1])); else if (path === "/about" || path === "/about/") showAboutPage(); else if (path === "/proprietor" || path === "/proprietor/") showPropPage(); else showLanding(); }
 
 function openShare(p) { state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` }; $("shareTitle").textContent = p.name; $("shNative").hidden = !navigator.share; $("shareModal").hidden = false; }
-function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; }
-function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("cartDrawer").classList.remove("open"); $("backdrop").hidden = true; }
-
+function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; document.body.style.overflow = "hidden"; if (id === "drawer") document.body.classList.add("menu-open"); }
+function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("cartDrawer").classList.remove("open"); $("backdrop").hidden = true; document.body.style.overflow = ""; document.body.classList.remove("menu-open"); }
 function bindLive() {
   db.collection("categories").onSnapshot(s => { state.categories = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderDrawer(); renderChips(); renderCollections(); }, () => {});
   db.collection("sizes").onSnapshot(s => { state.sizes = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); }, () => {});
