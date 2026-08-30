@@ -322,7 +322,16 @@ function bindLive() {
 function init() {
   const rl = $("routeLoader");
   const isProductPath = location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/");
-  if (isProductPath) { $("landingMain").hidden = true; if (rl) rl.hidden = false; }
+  if (isProductPath) {
+    const hasSSR = $("ppName") && $("ppName").textContent.trim() !== "";
+    if (hasSSR) {
+      /* SSR product already छ — spinner नदेखाई तुरुन्तै देखाऊ */
+      $("landingMain").hidden = true; $("productView").hidden = false; $("categoryView").hidden = true; if (rl) rl.hidden = true;
+    } else {
+      /* SSR छैन भने मात्र loader */
+      $("landingMain").hidden = true; if (rl) rl.hidden = false;
+    }
+  }
   setTimeout(() => { 
     const l = $("routeLoader"); 
     if (l && !l.hidden) { 
