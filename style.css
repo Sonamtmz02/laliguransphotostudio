@@ -438,3 +438,42 @@ body.menu-open #navToggle .b3{transform:translateY(-7px) rotate(-45deg)}
 .d-link::before,.d-contact::before{content:"";position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:3px;background:#b3232f;transform:scaleY(0);transition:transform .25s ease}
 .d-link:hover::before,.d-link:active::before{transform:scaleY(1)}
 .d-link:active,.d-contact:active,.d-cat:active{transform:scale(.98)}
+
+
+/* ===== SIDEBAR v4 — reference-style panel, website ko brand colors ===== */
+#drawer{background:linear-gradient(180deg,#9c1f2c 0%,#7a1522 55%,#5f0f1a 100%);color:#fdf3f1;border-radius:0 20px 20px 0;box-shadow:8px 0 40px rgba(0,0,0,.35)}
+body.dark #drawer{background:linear-gradient(180deg,#40161c,#2b0e13)}
+#drawer .drawer-head{background:transparent;border-bottom:1px solid rgba(253,243,241,.18)}
+#drawer .brand-txt strong{color:#fff}
+#drawer .brand-txt small{color:#f2c6c2}
+#drawer #drawerClose{color:#fdf3f1}
+#drawer .dc-title{color:#f2c6c2;opacity:1;border-bottom:1px solid rgba(253,243,241,.25);padding-bottom:.5rem}
+
+/* collections chips */
+#drawer .d-cat{background:rgba(253,243,241,.1);border:1px solid rgba(253,243,241,.22);color:#fdf3f1}
+#drawer .d-cat.active{background:#fdf3f1;color:#8f1a26;font-weight:800;border-color:transparent}
+#drawer .d-cat:active{transform:scale(.98)}
+
+/* quick links */
+#drawer .d-link{color:#fdf3f1}
+#drawer .d-link svg{color:#f6d3cf}
+#drawer .d-link:hover,#drawer .d-link:active{background:rgba(253,243,241,.14);color:#fff}
+#drawer .d-link::before{background:#ffd9d5}
+
+/* contact */
+#drawer .drawer-contact{border-top:1px solid rgba(253,243,241,.18)}
+#drawer .d-contact{color:#fdf3f1}
+#drawer .d-contact svg{background:rgba(253,243,241,.14);color:#ffd9d5}
+#drawer .d-contact:hover,#drawer .d-contact:active{background:rgba(253,243,241,.14)}
+#drawer .d-contact.wa:hover{background:rgba(37,211,102,.18);color:#7dedb0}
+
+/* proprietor card */
+#drawer .drawer-prop{background:rgba(253,243,241,.12);border:1px solid rgba(253,243,241,.25);color:#fff;box-shadow:none}
+#drawer .drawer-prop-txt strong{color:#fff}
+#drawer .drawer-prop-txt small{color:#f2c6c2}
+#drawer .drawer-prop-tap{color:#ffd9d5}
+#drawer .drawer-prop-img{background:#fdf3f1;color:#8f1a26}
+
+/* social + misc */
+#drawer .ds-icon{background:rgba(253,243,241,.14);border-color:rgba(253,243,241,.25)}
+#drawer .muted{color:#f2c6c2}
