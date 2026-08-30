@@ -1,8 +1,7 @@
-/* LALIGURANS edge router v7 - WWW redirect + canonical fix */
+/* LALIGURANS edge router v8 - self-inject canonical + safe www redirect */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
-const CANONICAL_DOMAIN = "https://www.laliguransphotostudio.com.np";
 
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
 function slugify(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"item";}
@@ -11,6 +10,11 @@ function df(f){const o={};for(const k in f)o[k]=dv(f[k]);return o;}
 async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);if(!r.ok)throw new Error("firestore "+r.status);const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();if(o.createdAt)o.createdAtMs=Date.parse(o.createdAt)||0;out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
 function assignSlugs(list){const by=[...list].sort((a,b)=>(a.createdAtMs||0)-(b.createdAtMs||0));const used={};for(const p of by){let s=p.slug;if(!s){let base=slugify(p.name),n=2;s=base;while(used[s]){s=base+"-"+n;n++;}}while(used[s]){s=s+"-2";}used[s]=true;p.slug=s;}return list;}
 function publicImg(origin,p){if(!p.imageUrl)return "";if(p.imageUrl.startsWith("/api/img/"))return origin+"/img/"+p.imageUrl.replace("/api/img/","");if(p.imageUrl.startsWith("http"))return p.imageUrl;return "";}
+function injectCanonical(html,url){
+  html=html.replace(/<link[^>]*id=["']canonical["'][^>]*>/,"");
+  if(!/rel=["']canonical["']/.test(html)){html=html.replace("</head>",`<link rel="canonical" href="${url}" />\n</head>`);}
+  return html;
+}
 function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8"}});}
 function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url}};return [prod,crumbs];}
 async function shellHtml(env,request){const u=new URL("/index.html",request.url);const r=await env.ASSETS.fetch(new Request(u.toString()));return await r.text();}
@@ -56,11 +60,11 @@ async function handleProduct(request,env,path){
     html=html.replace(/(<meta property="og:type" id="ogType" content=")[^"]*(")/,`$1product$2`);
     html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
     html=html.replace(/(<meta property="og:image" id="ogImage" content=")[^"]*(")/,`$1${img}$2`);
-    html=html.replace(/(<link rel="canonical" id="canonical" href=")[^"]*(")/,`$1${url}$2`);
     html=html.replace(/(<meta name="twitter:card" content=")[^"]*(")/,`$1${img?"summary_large_image":"summary"}$2`);
     html=html.replace(/(<meta name="twitter:title" id="twTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace(/(<meta name="twitter:image" id="twImage" content=")[^"]*(")/,`$1${img}$2`);
+    html=injectCanonical(html,url);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url,origin))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p><p>Availability: ${p.isAvailable===false?"Out of stock":"In stock"}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} | Laligurans Photo Studio">`:""}<p>Brand: Laligurans Photo Studio, Chautara, Sindhupalchok, Nepal</p></main></noscript>\n</head>`);
     return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60","x-seo-debug":"ok"}});
   }catch(e){
@@ -84,10 +88,10 @@ async function handleCategory(request,env,path){
     html=html.replace(/(<meta property="og:title" id="ogTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
     html=html.replace(/(<meta property="og:description" id="ogDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
-    html=html.replace(/(<link rel="canonical" id="canonical" href=")[^"]*(")/,`$1${url}$2`);
     html=html.replace(/(<meta name="twitter:card" content=")[^"]*(")/,`$1summary$2`);
     html=html.replace(/(<meta name="twitter:title" id="twTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
+    html=injectCanonical(html,url);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage","name":title,"description":desc,"url":url})}</script>\n</head>`);
     return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60","x-seo-debug":"ok"}});
   }catch(e){
@@ -98,13 +102,10 @@ export default {
   async fetch(request, env, ctx){
     try{
       const url=new URL(request.url);
-      
-      /* WWW REDIRECT: non-www → www */
-      if(url.hostname==="laliguransphotostudio.com.np"){
-        const redirectUrl=`https://www.laliguransphotostudio.com.np${url.pathname}${url.search}${url.hash}`;
-        return Response.redirect(redirectUrl,301);
+      /* WWW REDIRECT (safe, no-cache) */
+      if(request.method==="GET" && url.hostname==="laliguransphotostudio.com.np"){
+        return new Response(null,{status:301,headers:{Location:`https://www.laliguransphotostudio.com.np${url.pathname}${url.search}`,"cache-control":"no-store"}});
       }
-      
       const p=url.pathname;
       if(request.method==="GET"){
         if(p==="/sitemap.xml")return await handleSitemap(request);
