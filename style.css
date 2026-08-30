@@ -386,3 +386,55 @@ body.dark #propView .prop-bio{color:#cfc8c4}
 .col-card.col-all .col-name{color:#b3232f;font-weight:800}
 body.dark .col-card.col-all{border-color:#f0a9b0}
 body.dark .col-card.col-all .col-name{color:#f0a9b0}
+
+/* ===== SMOOTH SIDEBAR v3 ===== */
+.backdrop{position:fixed;inset:0;background:rgba(24,18,17,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:60;opacity:0;transition:opacity .35s ease}
+.backdrop:not([hidden]){opacity:1}
+
+.drawer{top:0;bottom:0;left:0;width:min(320px,88vw);background:#fbf9f6;z-index:70;transform:translateX(-108%);transition:transform .45s cubic-bezier(.22,1,.36,1);box-shadow:0 10px 50px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.drawer.open{transform:translateX(0)}
+.drawer.right{left:auto;right:0;transform:translateX(108%)}
+.drawer.right.open{transform:translateX(0)}
+body.dark .drawer{background:#201c1a}
+
+/* animated hamburger (lines → X) */
+#navToggle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+#navToggle span{width:20px;height:2px;background:currentColor;border-radius:2px;transition:transform .35s ease,opacity .25s ease}
+body.menu-open #navToggle .b1{transform:translateY(7px) rotate(45deg)}
+body.menu-open #navToggle .b2{opacity:0;transform:scaleX(.4)}
+body.menu-open #navToggle .b3{transform:translateY(-7px) rotate(-45deg)}
+
+/* sticky drawer head + close spin */
+.drawer-head{position:sticky;top:0;background:inherit;z-index:2;padding:1rem 1.1rem;border-bottom:1px solid rgba(0,0,0,.06)}
+#drawerClose svg,#favClose svg,#cartClose svg{transition:transform .35s ease}
+.drawer.open #drawerClose svg,.drawer.open #favClose svg,.drawer.open #cartClose svg{transform:rotate(90deg)}
+
+/* staggered menu entrance (reference jastai smooth) */
+.drawer .dc-title,.drawer .d-cat,.drawer .d-link,.drawer .d-contact,.drawer .drawer-prop,.drawer .ds-icon{opacity:0;transform:translateX(-14px);transition:opacity .4s ease,transform .4s ease}
+.drawer.open .dc-title,.drawer.open .d-cat,.drawer.open .d-link,.drawer.open .d-contact,.drawer.open .drawer-prop,.drawer.open .ds-icon{opacity:1;transform:none}
+.drawer.open .drawer-cats>*:nth-child(1){transition-delay:.05s}
+.drawer.open .drawer-cats>*:nth-child(2){transition-delay:.1s}
+.drawer.open .drawer-cats>*:nth-child(3){transition-delay:.15s}
+.drawer.open .drawer-cats>*:nth-child(4){transition-delay:.2s}
+.drawer.open .drawer-cats>*:nth-child(5){transition-delay:.25s}
+.drawer.open .drawer-cats>*:nth-child(6){transition-delay:.3s}
+.drawer.open .drawer-quick .d-link:nth-child(1){transition-delay:.12s}
+.drawer.open .drawer-quick .d-link:nth-child(2){transition-delay:.17s}
+.drawer.open .drawer-quick .d-link:nth-child(3){transition-delay:.22s}
+.drawer.open .drawer-quick .d-link:nth-child(4){transition-delay:.27s}
+.drawer.open .drawer-quick .d-link:nth-child(5){transition-delay:.32s}
+.drawer.open .drawer-quick .d-link:nth-child(6){transition-delay:.37s}
+.drawer.open .drawer-contact .d-contact:nth-child(1){transition-delay:.2s}
+.drawer.open .drawer-contact .d-contact:nth-child(2){transition-delay:.25s}
+.drawer.open .drawer-contact .d-contact:nth-child(3){transition-delay:.3s}
+.drawer.open .drawer-contact .d-contact:nth-child(4){transition-delay:.35s}
+.drawer.open .drawer-prop{transition-delay:.4s}
+.drawer.open .ds-icon:nth-child(1){transition-delay:.45s}
+.drawer.open .ds-icon:nth-child(2){transition-delay:.5s}
+.drawer.open .ds-icon:nth-child(3){transition-delay:.55s}
+
+/* hover slide indicator */
+.d-link,.d-contact{position:relative}
+.d-link::before,.d-contact::before{content:"";position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:3px;background:#b3232f;transform:scaleY(0);transition:transform .25s ease}
+.d-link:hover::before,.d-link:active::before{transform:scaleY(1)}
+.d-link:active,.d-contact:active,.d-cat:active{transform:scale(.98)}
