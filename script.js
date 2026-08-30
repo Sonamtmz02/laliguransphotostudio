@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v7 (product sharing fix + all features) */
+/* LALIGURANS USER PANEL - v9 (SSR-aware + share fix) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -44,7 +44,7 @@ const state = { store: null, categories: null, products: [], sizes: null, galler
 let db = null;
 
 function $(id) { return document.getElementById(id); }
-function hideRouteLoader() { const l = $("routeLoader"); if (l) l.hidden = true; }
+function hideRouteLoader() { const l = $("routeLoader"); if (l) { l.hidden = true; l.style.display = "none"; } }
 function esc(v) { return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
 function safeUrl(v) { const s = String(v||"").trim(); if (!s) return ""; try { const u = new URL(s); return ["https:","http:"].includes(u.protocol) ? s : ""; } catch { return ""; } }
 function imgUrl(v) { if (!v) return ""; const s = String(v); if (s.startsWith("http")) return s; if (s.startsWith("/api/")) return API_BASE + s; return ""; }
@@ -215,6 +215,8 @@ function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.h
 function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); } }
 
 function showLanding() { hideRouteLoader(); $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
+
+/* Robust slug finder: checks state, then DB slug field, then regenerates slugs deterministically */
 async function findProductBySlug(slug) {
   let p = state.products.find(x => x.slug === slug);
   if (p) return p;
@@ -234,7 +236,6 @@ async function findProductBySlug(slug) {
     if (!allSnap.empty) {
       const allProds = allSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       allProds.sort((a,b) => ((a.createdAt?.toMillis?.()||0) - (b.createdAt?.toMillis?.()||0)));
-      
       const used = {};
       for (const prod of allProds) {
         let s = prod.slug;
@@ -247,16 +248,14 @@ async function findProductBySlug(slug) {
         used[s] = true;
         prod.slug = s;
       }
-      
       p = allProds.find(x => x.slug === slug);
       if (p) return p;
     }
-  } catch (e) {
-    console.error("findProductBySlug fallback error:", e);
-  }
+  } catch (e) { console.error("findProductBySlug fallback error:", e); }
 
   return null;
 }
+
 async function showProductPage(slug) {
   const p = await findProductBySlug(slug);
   if (!p) { showLanding(); return; }
@@ -322,23 +321,28 @@ function bindLive() {
 function init() {
   const rl = $("routeLoader");
   const isProductPath = location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/");
-  if (isProductPath) {
-    const hasSSR = $("ppName") && $("ppName").textContent.trim() !== "";
-    if (hasSSR) {
-      /* SSR product already छ — spinner नदेखाई तुरुन्तै देखाऊ */
-      $("landingMain").hidden = true; $("productView").hidden = false; $("categoryView").hidden = true; if (rl) rl.hidden = true;
-    } else {
-      /* SSR छैन भने मात्र loader */
-      $("landingMain").hidden = true; if (rl) rl.hidden = false;
-    }
+
+  /* SSR-aware: if #ppName already has text (worker injected), product is ALREADY visible — do nothing, skip spinner */
+  const ssrPresent = isProductPath && $("ppName") && $("ppName").textContent && $("ppName").textContent.trim() !== "";
+
+  if (isProductPath && !ssrPresent) {
+    $("landingMain").hidden = true;
+    if (rl) rl.hidden = false;
+  } else if (ssrPresent) {
+    /* Worker already revealed it — just make sure state is consistent */
+    $("landingMain").hidden = true;
+    $("productView").hidden = false;
+    hideRouteLoader();
   }
-  setTimeout(() => { 
-    const l = $("routeLoader"); 
-    if (l && !l.hidden) { 
-      l.hidden = true; 
+
+  setTimeout(() => {
+    const l = $("routeLoader");
+    if (l && !l.hidden) {
+      l.hidden = true;
       if (!location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) { $("landingMain").hidden = false; }
-    } 
+    }
   }, 6000);
+
   loadFavs(); favCount();
   applyTheme(localStorage.getItem("lgs_theme") || "light", false);
   renderServices();
