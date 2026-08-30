@@ -380,8 +380,10 @@ function init() {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   bindLive();
-  loadProductsPage(true);
-  if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
-  setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
-}
+loadProductsPage(true);
+/* ========== PRODUCT SHARING FIX: route() call on page load ========== */
+route();
+/* ========== END PRODUCT SHARING FIX ========== */
+if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
+setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
 document.addEventListener("DOMContentLoaded", init);
