@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v9 (SSR-aware + share fix) */
+/* LALIGURANS USER PANEL - v11 (SSR-aware + share fix + instant boot) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -318,18 +318,34 @@ function bindLive() {
   db.collection("products").limit(1).onSnapshot(s => { if (!s.metadata.fromCache && state._loadedOnce && !location.pathname.startsWith("/product/")) { loadProductsPage(true); } state._loadedOnce = true; }, () => {});
 }
 
+/* ===== CHANGE 1: edge-cached boot data बाट instant render ===== */
+function bootFromSSR() {
+  const el = document.getElementById("ssrBoot");
+  if (!el) return false;
+  try {
+    const d = JSON.parse(el.textContent);
+    if (d.categories) state.categories = d.categories;
+    if (d.sizes) state.sizes = d.sizes;
+    if (d.gallery) state.gallery = d.gallery;
+    if (d.announcements) state.announcements = d.announcements;
+    if (d.store) state.store = d.store;
+    if (d.hours) state.hours = d.hours;
+    if (Array.isArray(d.products) && d.products.length) { state.products = d.products; state._ssr = true; }
+    return true;
+  } catch (e) { return false; }
+}
+
 function init() {
   const rl = $("routeLoader");
   const isProductPath = location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/");
 
-  /* SSR-aware: if #ppName already has text (worker injected), product is ALREADY visible — do nothing, skip spinner */
+  /* SSR-aware: if #ppName already has text (worker injected), product is ALREADY visible — skip spinner */
   const ssrPresent = isProductPath && $("ppName") && $("ppName").textContent && $("ppName").textContent.trim() !== "";
 
   if (isProductPath && !ssrPresent) {
     $("landingMain").hidden = true;
     if (rl) rl.hidden = false;
   } else if (ssrPresent) {
-    /* Worker already revealed it — just make sure state is consistent */
     $("landingMain").hidden = true;
     $("productView").hidden = false;
     hideRouteLoader();
@@ -346,6 +362,16 @@ function init() {
   loadFavs(); favCount();
   applyTheme(localStorage.getItem("lgs_theme") || "light", false);
   renderServices();
+
+  /* ===== CHANGE 2: boot data भए तुरुन्तै सबै render ===== */
+  if (bootFromSSR()) {
+    renderDrawer(); renderChips(); renderCollections(); renderGallery(); renderHeroVisual(); renderAnnouncements(); renderStore(); renderHours();
+    if (state._ssr && !location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) {
+      $("productGrid").innerHTML = state.products.filter(p => matchesFilters(p)).map(productCard).join("");
+      sentinel("");
+    }
+  }
+
   updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
 
@@ -420,11 +446,12 @@ function init() {
   document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; $("propModal").hidden = true; $("aboutModal").hidden = true; $("shareModal").hidden = true; closeDrawers(); } if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1); if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1); });
   revealize();
 
-  if (typeof firebase === "undefined") { $("productGrid").innerHTML = `<p class="muted">Loading failed. Internet जाँच गर्नुहोस्।</p>`; return; }
+  if (typeof firebase === "undefined") { if (!state._ssr) $("productGrid").innerHTML = `<p class="muted">Loading failed. Internet जाँच गर्नुहोस्।</p>`; return; }
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   bindLive();
-  loadProductsPage(true);
+  /* ===== CHANGE 3: boot data भए double-load रोक्ने ===== */
+  if (!state._ssr) loadProductsPage(true);
   /* PRODUCT SHARING FIX: route() on load so direct/shared URLs open the exact product */
   route();
   if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
