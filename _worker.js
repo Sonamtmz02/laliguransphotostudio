@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v16 - SSR links + security headers + instant cache + enhanced sitemap */
+/* LALIGURANS edge router v17 - about/proprietor pages + enhanced sitemap + security + instant cache */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -87,7 +87,7 @@ async function handleImg(path){
   return new Response(await r.arrayBuffer(),{headers:secHeaders({"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"})});
 }
 
-/* ===== ENHANCED SITEMAP: image sitemap + priority + skip "item" slug ===== */
+/* ===== ENHANCED SITEMAP: image sitemap + priority + skip "item" slug + info pages ===== */
 async function handleSitemap(request){
   const origin=new URL(request.url).origin;
   const today=new Date().toISOString().slice(0,10);
@@ -99,6 +99,10 @@ async function handleSitemap(request){
 
     /* Home - highest priority */
     urls.push({loc:"/",last:today,cf:"daily",pr:"1.0",img:null});
+
+    /* Info pages */
+    urls.push({loc:"/about",last:today,cf:"monthly",pr:"0.5",img:null});
+    urls.push({loc:"/proprietor",last:today,cf:"monthly",pr:"0.5",img:null});
 
     /* Categories - skip slugify fail ("item") */
     for(const c of cats.filter(c=>c.isActive)){
@@ -145,6 +149,33 @@ ${urls.map(u=>{
 </urlset>`;
 
   return new Response(xml,{headers:secHeaders({"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug})});
+}
+
+/* ===== NEW v17: ABOUT / PROPRIETOR standalone pages (SSR) ===== */
+async function handleInfoPage(request,env,ctx,kind){
+  const origin=new URL(request.url).origin;
+  const stamp=await getStamp();
+  const key="info:"+kind;
+  const hit=await htmlCacheGet(request,key,stamp);
+  if(hit)return hit;
+  const shell=await shellHtml(env,request);
+  const isAbout=kind==="about";
+  const title=(isAbout?"About Us":"Proprietor")+" | Laligurans Photo Studio";
+  const desc=isAbout?"करिब ३० वर्षदेखि स्थानीय ग्राहकको विश्वाससँग जोडिएको यात्रा।":"सूर्यलाल श्रेष्ठ — प्रोप्राइटर, Laligurans Photo Studio।";
+  const img=origin+(isAbout?"/logo.png":"/proprietor.png");
+  const url=origin+"/"+(isAbout?"about":"proprietor");
+  let html=shell;
+  html=html.replace(/<title>[^<]*<\/title>/,`<title>${esc(title)}</title>`);
+  html=html.replace(/(<meta name="description" id="metaDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
+  html=html.replace(/(<meta property="og:title" id="ogTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
+  html=html.replace(/(<meta property="og:description" id="ogDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
+  html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
+  html=html.replace(/(<meta property="og:image" id="ogImage" content=")[^"]*(")/,`$1${img}$2`);
+  html=injectCanonical(html,url);
+  html=html.split('<div id="'+(isAbout?"aboutView":"propView")+'" hidden>').join('<div id="'+(isAbout?"aboutView":"propView")+'">');
+  html=html.split('<main id="landingMain">').join('<main id="landingMain" hidden>');
+  ctx.waitUntil(htmlCachePut(request,key,stamp,html));
+  return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"}))});
 }
 
 async function handleHome(request,env,ctx){
@@ -317,6 +348,8 @@ export default {
         if(p==="/sitemap.xml")return await handleSitemap(request);
         if(p.startsWith("/img/"))return await handleImg(p);
         if(p==="/"||p==="/index.html")return await handleHome(request,env,ctx);
+        if(p==="/about"||p==="/about/")return await handleInfoPage(request,env,ctx,"about");
+        if(p==="/proprietor"||p==="/proprietor/")return await handleInfoPage(request,env,ctx,"proprietor");
         if(p.startsWith("/product/"))return await handleProduct(request,env,ctx,p);
         if(p.startsWith("/category/"))return await handleCategory(request,env,ctx,p);
       }
