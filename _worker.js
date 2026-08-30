@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v13 - SSR product body + edge-cached home boot + perf polish */
+/* LALIGURANS edge router v14 - instant cache invalidation via updatedAt fingerprint */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -20,7 +20,35 @@ function injectCanonical(html,url){
   if(!/rel=["']canonical["']/.test(html)){html=html.replace("</head>",`<link rel="canonical" href="${url}" />\n</head>`);}
   return html;
 }
-function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300"}});}
+
+/* ===== v14: updatedAt fingerprint + edge HTML cache (instant invalidation) ===== */
+async function fetchStamp(coll){
+  try{
+    const u=`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${coll}?pageSize=1&orderBy=${encodeURIComponent("updatedAt DESC")}&mask.fieldPaths=updatedAt&key=${API_KEY}`;
+    const r=await fetch(u);if(!r.ok)return "";
+    const j=await r.json();const d=(j.documents||[])[0];
+    return (d&&d.fields&&d.fields.updatedAt&&(d.fields.updatedAt.timestampValue||""))||"";
+  }catch(e){return "";}
+}
+async function getStamp(){const [a,b]=await Promise.all([fetchStamp("products"),fetchStamp("categories")]);return a+"|"+b;}
+function cacheKeyFor(request,key,stamp){const u=new URL(request.url);return new Request(u.origin+"/__htmlcache/"+encodeURIComponent(key)+"/"+encodeURIComponent(stamp||"none"));}
+async function htmlCacheGet(request,key,stamp){
+  try{
+    const m=await caches.default.match(cacheKeyFor(request,key,stamp));
+    if(!m)return null;
+    const html=await m.text();
+    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5, stale-while-revalidate=30","x-html-cache":"hit"}});
+  }catch(e){return null;}
+}
+async function htmlCachePut(request,key,stamp,html){
+  try{
+    const ttl=stamp?"public, max-age=300":"public, max-age=30";
+    await caches.default.put(cacheKeyFor(request,key,stamp),new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":ttl}}));
+  }catch(e){}
+}
+const OUT_HEADERS={"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5, stale-while-revalidate=30"};
+
+function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"}});}
 function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url}};return [prod,crumbs];}
 async function shellHtml(env,request){const u=new URL("/index.html",request.url);const r=await env.ASSETS.fetch(new Request(u.toString()));return await r.text();}
 async function handleImg(path){
@@ -42,12 +70,14 @@ async function handleSitemap(request){
     for(const p of active)urls.push({loc:"/product/"+p.slug,last:p.updatedAt?String(p.updatedAt).slice(0,10):today});
   }catch(e){debug="error:"+String(e.message||e);}
   const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`+urls.map(u=>`<url><loc>${origin}${u.loc}</loc><lastmod>${u.last}</lastmod><changefreq>${u.loc==="/"?"daily":"weekly"}</changefreq></url>`).join("\n")+`\n</urlset>`;
-  return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=300","x-sitemap-debug":debug}});
+  return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug}});
 }
 
-/* ===== HOME BOOT DATA (edge-cached) + hero image preload ===== */
-async function handleHome(request,env){
+async function handleHome(request,env,ctx){
   const origin=new URL(request.url).origin;
+  const stamp=await getStamp();
+  const hit=await htmlCacheGet(request,"home",stamp);
+  if(hit)return hit;
   const shell=await shellHtml(env,request);
   try{
     const [prods,cats,sizes,gallery,anns,store,hours]=await Promise.all([
@@ -69,12 +99,12 @@ async function handleHome(request,env){
       hours:hours||null
     };
     let html=shell;
-    /* PERF: hero/LCP image preload */
     const heroImg=(payload.gallery[0]&&payload.gallery[0].imageUrl)||(payload.products[0]&&payload.products[0].imageUrl)||"";
     if(heroImg)html=html.replace("</head>",`<link rel="preload" as="image" href="${escAttr(heroImg)}" fetchpriority="high">\n</head>`);
     const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
     html=html.replace("</body>",boot);
-    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-boot":"ok"}});
+    ctx.waitUntil(htmlCachePut(request,"home",stamp,html));
+    return new Response(html,{headers:Object.assign({},OUT_HEADERS,{"x-boot":"ok"})});
   }catch(e){
     return new Response(shell,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=10","x-boot":"error:"+String(e.message||e)}});
   }
@@ -123,9 +153,12 @@ function buildProductBody(p,cat,img,origin){
   </div>`;
 }
 
-async function handleProduct(request,env,path){
+async function handleProduct(request,env,ctx,path){
   const slug=decodeURIComponent(path.replace(/^\/product\//,"").replace(/\/$/,""));
   const origin=new URL(request.url).origin;
+  const stamp=await getStamp();
+  const hit=await htmlCacheGet(request,"p:"+slug,stamp);
+  if(hit)return hit;
   const shell=await shellHtml(env,request);
   try{
     const [prods,cats,sizes]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories"),fetchDocs(PROJECT_ID,API_KEY,"sizes")]);
@@ -159,19 +192,23 @@ async function handleProduct(request,env,path){
     }
     html=html.split('<main id="landingMain">').join('<main id="landingMain" hidden>');
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url,origin))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p><p>Availability: ${p.isAvailable===false?"Out of stock":"In stock"}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} | Laligurans Photo Studio">`:""}<p>Brand: Laligurans Photo Studio, Chautara, Sindhupalchok, Nepal</p></main></noscript>\n</head>`);
-    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-seo-debug":"ok"}});
+    ctx.waitUntil(htmlCachePut(request,"p:"+slug,stamp,html));
+    return new Response(html,{headers:Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"})});
   }catch(e){
     return new Response(shell,{status:500,headers:{"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)}});
   }
 }
-async function handleCategory(request,env,path){
+async function handleCategory(request,env,ctx,path){
   const slug=decodeURIComponent(path.replace(/^\/category\//,"").replace(/\/$/,""));
   const origin=new URL(request.url).origin;
+  const stamp=await getStamp();
+  const hit=await htmlCacheGet(request,"c:"+slug,stamp);
+  if(hit)return hit;
   const shell=await shellHtml(env,request);
   try{
     const cats=(await fetchDocs(PROJECT_ID,API_KEY,"categories")).filter(c=>c.isActive);
     const c=cats.find(x=>slugify(x.name)===slug);
-    if(!c)return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Category Not Found</title></head><body><h1>404 — Category Not Found</h1><p><a href="/">Back to home</a></p></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8"}});
+    if(!c)return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Category Not Found</title></head><body><h1>404 — Category Not Found</h1><p><a href="/">Back to home</a></p></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"}});
     const url=origin+"/category/"+slug;
     const title=`${c.name} | Laligurans Photo Studio`;
     const desc=c.description||`Explore ${c.name} from Laligurans Photo Studio, Chautara.`;
@@ -186,7 +223,8 @@ async function handleCategory(request,env,path){
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=injectCanonical(html,url);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage","name":title,"description":desc,"url":url})}</script>\n</head>`);
-    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-seo-debug":"ok"}});
+    ctx.waitUntil(htmlCachePut(request,"c:"+slug,stamp,html));
+    return new Response(html,{headers:Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"})});
   }catch(e){
     return new Response(shell,{status:500,headers:{"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)}});
   }
@@ -202,9 +240,9 @@ export default {
       if(request.method==="GET"){
         if(p==="/sitemap.xml")return await handleSitemap(request);
         if(p.startsWith("/img/"))return await handleImg(p);
-        if(p==="/"||p==="/index.html")return await handleHome(request,env);
-        if(p.startsWith("/product/"))return await handleProduct(request,env,p);
-        if(p.startsWith("/category/"))return await handleCategory(request,env,p);
+        if(p==="/"||p==="/index.html")return await handleHome(request,env,ctx);
+        if(p.startsWith("/product/"))return await handleProduct(request,env,ctx,p);
+        if(p.startsWith("/category/"))return await handleCategory(request,env,ctx,p);
       }
       return env.ASSETS.fetch(request);
     }catch(e){
