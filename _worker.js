@@ -1,10 +1,9 @@
-/* LALIGURANS edge router v15 - instant cache + security headers on ALL responses */
+/* LALIGURANS edge router v16 - SSR product/category links for Google discovery */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
 const WA_DIGITS = "9779768385368";
 
-/* ===== SECURITY HEADERS (worker responses मा पनि लाग्छ) ===== */
 const SEC = {
   "strict-transport-security": "max-age=31536000; includeSubDomains",
   "x-content-type-options": "nosniff",
@@ -40,7 +39,18 @@ function injectCanonical(html,url){
   return html;
 }
 
-/* updatedAt fingerprint + edge HTML cache */
+/* ===== v16: SSR crawlable links (Google + no-JS users) ===== */
+function ssrHomeLinks(payload){
+  const prods=[...payload.products].sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)||String(a.name||"").localeCompare(String(b.name||""))).slice(0,12);
+  return prods.map(p=>{
+    const img=p.imageUrl||"";
+    return `<article class="p-card"><div class="p-media">${img?`<img src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" loading="lazy" decoding="async">`:`<div class="p-noimg"></div>`}</div><div class="p-body"><strong class="p-name"><a href="/product/${escAttr(p.slug)}">${esc(p.name)}</a></strong><div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span><a class="p-detail" href="/product/${escAttr(p.slug)}">View Details ›</a></div></div></article>`;
+  }).join("");
+}
+function ssrColLinks(payload){
+  return payload.categories.map(c=>`<a class="col-card" href="/category/${escAttr(slugify(c.name))}"><span class="col-name">${esc(c.name)}</span></a>`).join("");
+}
+
 async function fetchStamp(coll){
   try{
     const u=`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${coll}?pageSize=1&orderBy=${encodeURIComponent("updatedAt DESC")}&mask.fieldPaths=updatedAt&key=${API_KEY}`;
@@ -109,7 +119,7 @@ async function handleHome(request,env,ctx){
       fetchDoc(PROJECT_ID,API_KEY,"businessHours/weekly")
     ]);
     const payload={
-      products:assignSlugs(prods.filter(p=>p.isActive)).map(p=>({id:p.id,name:p.name,price:p.price,imageUrl:publicImg(origin,p),categoryId:p.categoryId,slug:p.slug,sizeIds:p.sizeIds||[],sizePrices:p.sizePrices||{},isFeatured:!!p.isFeatured,isAvailable:p.isAvailable!==false,description:p.description||"",keywords:Array.isArray(p.keywords)?p.keywords:[]})),
+      products:assignSlugs(prods.filter(p=>p.isActive)).map(p=>({id:p.id,name:p.name,price:p.price,imageUrl:publicImg(origin,p),categoryId:p.categoryId,slug:p.slug,sizeIds:p.sizeIds||[],sizePrices:p.sizePrices||{},isFeatured:!!p.isFeatured,isAvailable:p.isAvailable!==false,description:p.description||"",keywords:Array.isArray(p.keywords)?p.keywords:[],displayOrder:p.displayOrder||0})),
       categories:cats.filter(c=>c.isActive).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)).map(c=>({id:c.id,name:c.name,description:c.description||""})),
       sizes:sizes.filter(s=>s.isActive).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)).map(s=>({id:s.id,name:s.name,dimensions:s.dimensions||"",price:s.price||0})),
       gallery:gallery.filter(g=>g.published).map(g=>({title:g.title||"",imageUrl:publicImg(origin,g)})),
@@ -120,6 +130,9 @@ async function handleHome(request,env,ctx){
     let html=shell;
     const heroImg=(payload.gallery[0]&&payload.gallery[0].imageUrl)||(payload.products[0]&&payload.products[0].imageUrl)||"";
     if(heroImg)html=html.replace("</head>",`<link rel="preload" as="image" href="${escAttr(heroImg)}" fetchpriority="high">\n</head>`);
+    /* v16: crawlable links inside HTML (Google + no-JS) */
+    html=html.replace('<div id="productGrid" class="p-grid"></div>','<div id="productGrid" class="p-grid">'+ssrHomeLinks(payload)+'</div>');
+    html=html.replace('<div id="colGrid" class="col-grid"></div>','<div id="colGrid" class="col-grid">'+ssrColLinks(payload)+'</div>');
     const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
     html=html.replace("</body>",boot);
     ctx.waitUntil(htmlCachePut(request,"home",stamp,html));
