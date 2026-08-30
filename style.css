@@ -380,3 +380,9 @@ body.dark #propView .prop-bio{color:#cfc8c4}
 #propView .prop-phone{font-size:1.25rem;font-weight:800;letter-spacing:.03em;margin:.4rem 0 1rem}
 #propView .prop-btns{justify-content:center;gap:.7rem}
 #propView .prop-btns .btn-ghost2,#propView .prop-btns .p-wa{border-radius:999px;padding:.7rem 1.4rem;font-weight:700}
+
+/* ===== STEP 3: All Products card highlight ===== */
+.col-card.col-all{border:2px solid #b3232f;box-shadow:0 6px 18px rgba(179,35,47,.15)}
+.col-card.col-all .col-name{color:#b3232f;font-weight:800}
+body.dark .col-card.col-all{border-color:#f0a9b0}
+body.dark .col-card.col-all .col-name{color:#f0a9b0}
