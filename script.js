@@ -172,7 +172,28 @@ const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.
 function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el => io ? io.observe(el) : el.classList.add("in")); }
 
 function renderAnnouncements() { const now = Date.now(); const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2)); const bar = $("annBar"); if (!act.length) { bar.hidden = true; return; } bar.hidden = false; bar.innerHTML = act.map(a => esc(a.message)).join("  ·  "); }
-function renderDrawer() { const cats = state.categories || []; $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>` + cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); }
+function renderDrawer() {
+  const cats = state.categories || [];
+  $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>` + cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join("");
+
+  /* Contact section: store info (phone/email/address/map) */
+  const s = state.store || {};
+  const dCall = $("dCall"); const dPhone = $("dPhone"); const dMail = $("dMail"); const dEmail = $("dEmail"); const dMap = $("dMap"); const dAddr = $("dAddr");
+  if (dPhone) dPhone.textContent = CONTACT.callDisplay;
+  if (dCall) dCall.href = CONTACT.callTel;
+  if (dEmail) dEmail.textContent = CONTACT.email;
+  if (dMail) dMail.href = "mailto:" + CONTACT.email;
+  if (s.address) { if (dAddr) dAddr.textContent = s.address; if (dMap) dMap.hidden = false; if (dMap && s.mapUrl) dMap.href = s.mapUrl; else if (dMap) dMap.href = "https://www.google.com/maps?q=" + encodeURIComponent(s.address || "Chautara, Nepal"); }
+  if (s && s.mapUrl && dMap) { dMap.href = s.mapUrl; dMap.hidden = false; }
+
+  /* Social icons (real brand SVGs) */
+  const fb = safeUrl(s.facebook); const ig = safeUrl(s.instagram); const tk = safeUrl(s.tiktok);
+  const socials = [];
+  if (fb) socials.push({ href: fb, label: "Facebook", cls: "fb", svg: `<svg class="ic" viewBox="0 0 24 24"><path fill="#1877F2" d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.8c0-2.4 1.4-3.7 3.6-3.7 1 0 2.1.2 2.1.2v2.3h-1.2c-1.2 0-1.5.7-1.5 1.5v1.8h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12z"/></svg>` });
+  if (ig) socials.push({ href: ig, label: "Instagram", cls: "ig", svg: `<svg class="ic" viewBox="0 0 24 24"><defs><linearGradient id="igG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f58529"/><stop offset="50%" stop-color="#dd2a7b"/><stop offset="100%" stop-color="#8134af"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" fill="url(#igG)"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>` });
+  if (tk) socials.push({ href: tk, label: "TikTok", cls: "tk", svg: `<svg class="ic" viewBox="0 0 24 24"><path fill="#25F4EE" d="M16.6 5.8A4.8 4.8 0 0 1 15.4 3h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.8a5.7 5.7 0 1 0 5 5.7V9.9a7.8 7.8 0 0 0 4.4 1.4v-3a4.8 4.8 0 0 1-3.4-2.5z" transform="translate(-1 0)"/><path fill="#FE2C55" d="M16.6 5.8A4.8 4.8 0 0 1 15.4 3h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.8a5.7 5.7 0 1 0 5 5.7V9.9a7.8 7.8 0 0 0 4.4 1.4v-3a4.8 4.8 0 0 1-3.4-2.5z" transform="translate(1 0)"/><path fill="#010101" d="M16.6 5.8A4.8 4.8 0 0 1 15.4 3h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.8a5.7 5.7 0 1 0 5 5.7V9.9a7.8 7.8 0 0 0 4.4 1.4v-3a4.8 4.8 0 0 1-3.4-2.5z"/></svg>` });
+  $("drawerSocial").innerHTML = socials.length ? socials.map(x => `<a class="ds-icon ${x.cls}" href="${x.href}" target="_blank" rel="noopener" aria-label="${x.label}">${x.svg}</a>`).join("") : `<p class="muted" style="font-size:.8rem;padding:0 .4rem">Social links छिट्टै आउँदै छन्।</p>`;
+}
 function renderCollections() { const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } el.innerHTML = cats.map(c => { const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join(""); }
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
