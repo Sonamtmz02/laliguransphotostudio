@@ -1,8 +1,27 @@
-/* LALIGURANS edge router v14 - instant cache invalidation via updatedAt fingerprint */
+/* LALIGURANS edge router v15 - instant cache + security headers on ALL responses */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
 const WA_DIGITS = "9779768385368";
+
+/* ===== SECURITY HEADERS (worker responses मा पनि लाग्छ) ===== */
+const SEC = {
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "x-xss-protection": "0",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "camera=(), geolocation=(), microphone=(), payment=()",
+  "cross-origin-opener-policy": "same-origin",
+  "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://laligurans-admin.pages.dev; frame-src https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+};
+function secHeaders(extra){ return Object.assign({}, SEC, extra || {}); }
+async function assetsWithSec(request, env){
+  const r = await env.ASSETS.fetch(request);
+  const nr = new Response(r.body, r);
+  for (const k in SEC) if (!nr.headers.has(k)) nr.headers.set(k, SEC[k]);
+  return nr;
+}
 
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
 function escAttr(s){return esc(s).replaceAll("'","&#39;");}
@@ -21,7 +40,7 @@ function injectCanonical(html,url){
   return html;
 }
 
-/* ===== v14: updatedAt fingerprint + edge HTML cache (instant invalidation) ===== */
+/* updatedAt fingerprint + edge HTML cache */
 async function fetchStamp(coll){
   try{
     const u=`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${coll}?pageSize=1&orderBy=${encodeURIComponent("updatedAt DESC")}&mask.fieldPaths=updatedAt&key=${API_KEY}`;
@@ -37,7 +56,7 @@ async function htmlCacheGet(request,key,stamp){
     const m=await caches.default.match(cacheKeyFor(request,key,stamp));
     if(!m)return null;
     const html=await m.text();
-    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5, stale-while-revalidate=30","x-html-cache":"hit"}});
+    return new Response(html,{headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5, stale-while-revalidate=30","x-html-cache":"hit"})});
   }catch(e){return null;}
 }
 async function htmlCachePut(request,key,stamp,html){
@@ -48,15 +67,15 @@ async function htmlCachePut(request,key,stamp,html){
 }
 const OUT_HEADERS={"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5, stale-while-revalidate=30"};
 
-function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"}});}
+function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"})});}
 function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url}};return [prod,crumbs];}
 async function shellHtml(env,request){const u=new URL("/index.html",request.url);const r=await env.ASSETS.fetch(new Request(u.toString()));return await r.text();}
 async function handleImg(path){
   const key=path.replace(/^\/img\//,"");
-  if(!/^(products|gallery)\/[A-Za-z0-9-]+\/\d+-[a-f0-9]{6,12}\.(jpg|jpeg|png|webp)$/i.test(key))return new Response("bad key",{status:400});
+  if(!/^(products|gallery)\/[A-Za-z0-9-]+\/\d+-[a-f0-9]{6,12}\.(jpg|jpeg|png|webp)$/i.test(key))return new Response("bad key",{status:400,headers:secHeaders({})});
   const r=await fetch(ADMIN_BASE+"/api/img/"+key);
-  if(!r.ok)return new Response("not found",{status:404});
-  return new Response(await r.arrayBuffer(),{headers:{"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"}});
+  if(!r.ok)return new Response("not found",{status:404,headers:secHeaders({})});
+  return new Response(await r.arrayBuffer(),{headers:secHeaders({"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"})});
 }
 async function handleSitemap(request){
   const origin=new URL(request.url).origin;
@@ -70,7 +89,7 @@ async function handleSitemap(request){
     for(const p of active)urls.push({loc:"/product/"+p.slug,last:p.updatedAt?String(p.updatedAt).slice(0,10):today});
   }catch(e){debug="error:"+String(e.message||e);}
   const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`+urls.map(u=>`<url><loc>${origin}${u.loc}</loc><lastmod>${u.last}</lastmod><changefreq>${u.loc==="/"?"daily":"weekly"}</changefreq></url>`).join("\n")+`\n</urlset>`;
-  return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug}});
+  return new Response(xml,{headers:secHeaders({"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug})});
 }
 
 async function handleHome(request,env,ctx){
@@ -104,9 +123,9 @@ async function handleHome(request,env,ctx){
     const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
     html=html.replace("</body>",boot);
     ctx.waitUntil(htmlCachePut(request,"home",stamp,html));
-    return new Response(html,{headers:Object.assign({},OUT_HEADERS,{"x-boot":"ok"})});
+    return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-boot":"ok"}))});
   }catch(e){
-    return new Response(shell,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=10","x-boot":"error:"+String(e.message||e)}});
+    return new Response(shell,{headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=10","x-boot":"error:"+String(e.message||e)})});
   }
 }
 
@@ -193,9 +212,9 @@ async function handleProduct(request,env,ctx,path){
     html=html.split('<main id="landingMain">').join('<main id="landingMain" hidden>');
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url,origin))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p><p>Availability: ${p.isAvailable===false?"Out of stock":"In stock"}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} | Laligurans Photo Studio">`:""}<p>Brand: Laligurans Photo Studio, Chautara, Sindhupalchok, Nepal</p></main></noscript>\n</head>`);
     ctx.waitUntil(htmlCachePut(request,"p:"+slug,stamp,html));
-    return new Response(html,{headers:Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"})});
+    return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"}))});
   }catch(e){
-    return new Response(shell,{status:500,headers:{"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)}});
+    return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)})});
   }
 }
 async function handleCategory(request,env,ctx,path){
@@ -208,7 +227,7 @@ async function handleCategory(request,env,ctx,path){
   try{
     const cats=(await fetchDocs(PROJECT_ID,API_KEY,"categories")).filter(c=>c.isActive);
     const c=cats.find(x=>slugify(x.name)===slug);
-    if(!c)return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Category Not Found</title></head><body><h1>404 — Category Not Found</h1><p><a href="/">Back to home</a></p></body></html>`,{status:404,headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"}});
+    if(!c)return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Category Not Found</title></head><body><h1>404 — Category Not Found</h1><p><a href="/">Back to home</a></p></body></html>`,{status:404,headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"})});
     const url=origin+"/category/"+slug;
     const title=`${c.name} | Laligurans Photo Studio`;
     const desc=c.description||`Explore ${c.name} from Laligurans Photo Studio, Chautara.`;
@@ -224,9 +243,9 @@ async function handleCategory(request,env,ctx,path){
     html=injectCanonical(html,url);
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage","name":title,"description":desc,"url":url})}</script>\n</head>`);
     ctx.waitUntil(htmlCachePut(request,"c:"+slug,stamp,html));
-    return new Response(html,{headers:Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"})});
+    return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"}))});
   }catch(e){
-    return new Response(shell,{status:500,headers:{"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)}});
+    return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)})});
   }
 }
 export default {
@@ -234,7 +253,7 @@ export default {
     try{
       const url=new URL(request.url);
       if(request.method==="GET" && url.hostname==="laliguransphotostudio.com.np"){
-        return new Response(null,{status:301,headers:{Location:`https://www.laliguransphotostudio.com.np${url.pathname}${url.search}`,"cache-control":"no-store"}});
+        return new Response(null,{status:301,headers:secHeaders({Location:`https://www.laliguransphotostudio.com.np${url.pathname}${url.search}`,"cache-control":"no-store"})});
       }
       const p=url.pathname;
       if(request.method==="GET"){
@@ -244,9 +263,9 @@ export default {
         if(p.startsWith("/product/"))return await handleProduct(request,env,ctx,p);
         if(p.startsWith("/category/"))return await handleCategory(request,env,ctx,p);
       }
-      return env.ASSETS.fetch(request);
+      return await assetsWithSec(request,env);
     }catch(e){
-      try{return env.ASSETS.fetch(request);}catch(e2){return new Response("Server error",{status:500});}
+      try{return await assetsWithSec(request,env);}catch(e2){return new Response("Server error",{status:500,headers:secHeaders({"content-type":"text/plain"})});}
     }
   }
 }
