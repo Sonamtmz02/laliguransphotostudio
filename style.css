@@ -306,3 +306,40 @@ body.dark .cart-qty button{border-color:#555;color:#eee}
 body.dark .cart-foot{border-top-color:#3a3533}
 .cart-total{font-weight:800}
 .pm-size.sel{outline:2px solid #b3232f;border-radius:10px}
+
+/* ===== STEP 2: SIDE DRAWER ENHANCED ===== */
+.drawer-quick{display:flex;flex-direction:column;gap:2px;padding:0 .4rem}
+.d-link{display:flex;align-items:center;gap:.75rem;padding:.75rem .9rem;border-radius:10px;font-size:.95rem;font-weight:500;color:#221f1e;text-decoration:none;transition:background .15s}
+.d-link:hover,.d-link:active{background:rgba(179,35,47,.08);color:#b3232f}
+body.dark .d-link{color:#eee}
+body.dark .d-link:hover,body.dark .d-link:active{background:rgba(246,227,229,.1);color:#f6c5c8}
+.d-link svg{flex-shrink:0;opacity:.7}
+
+.drawer-contact{display:flex;flex-direction:column;gap:2px;padding:0 .4rem}
+.d-contact{display:flex;align-items:center;gap:.75rem;padding:.7rem .9rem;border-radius:10px;font-size:.9rem;color:#221f1e;text-decoration:none;word-break:break-word;transition:background .15s}
+.d-contact:hover,.d-contact:active{background:rgba(179,35,47,.08)}
+body.dark .d-contact{color:#ddd}
+body.dark .d-contact:hover,body.dark .d-contact:active{background:rgba(246,227,229,.1)}
+.d-contact.wa:hover,.d-contact.wa:active{background:rgba(37,211,102,.1);color:#25D366}
+.d-contact svg{flex-shrink:0;opacity:.75}
+.d-contact span{flex:1;min-width:0}
+
+.drawer-prop{display:flex;align-items:center;gap:.8rem;padding:.75rem .9rem;margin:0 .4rem;border-radius:12px;background:linear-gradient(135deg,#faf6ef,#f6e3e5);text-decoration:none;color:#221f1e;transition:transform .15s,box-shadow .15s;border:1px solid #f0d5d8}
+.drawer-prop:hover,.drawer-prop:active{transform:translateY(-1px);box-shadow:0 4px 12px rgba(179,35,47,.12)}
+body.dark .drawer-prop{background:linear-gradient(135deg,#2a2523,#332525);border-color:#3a2828;color:#eee}
+.drawer-prop-img{width:44px;height:44px;border-radius:50%;background:#b3232f;color:#fff;display:grid;place-items:center;font-weight:700;flex-shrink:0;overflow:hidden;position:relative}
+.drawer-prop-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.drawer-prop-img .prop-init{font-size:1.1rem}
+.drawer-prop-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.drawer-prop-txt strong{font-size:.95rem;font-weight:600;color:inherit}
+.drawer-prop-txt small{font-size:.8rem;opacity:.7}
+.drawer-prop-tap{font-size:.78rem;color:#b3232f;font-weight:600;margin-top:2px}
+
+.drawer-social{display:flex;gap:.6rem;padding:.5rem .6rem;flex-wrap:wrap}
+.ds-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:#faf6ef;border:1px solid #eee;transition:transform .15s,box-shadow .15s;text-decoration:none}
+.ds-icon:hover,.ds-icon:active{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.08)}
+body.dark .ds-icon{background:#221f1e;border-color:#3a3533}
+.ds-icon svg{width:28px;height:28px}
+.ds-icon.fb:hover{border-color:#1877F2;background:rgba(24,119,242,.08)}
+.ds-icon.ig:hover{border-color:#dd2a7b;background:rgba(221,42,123,.08)}
+.ds-icon.tk:hover{border-color:#FE2C55;background:rgba(254,44,85,.08)}
