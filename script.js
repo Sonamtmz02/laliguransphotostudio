@@ -108,9 +108,10 @@ function addToCart(id, sizeId) {
   const s = sizeId ? (state.sizes||[]).find(x => x.id === sizeId) : null;
   const key = id + "|" + (sizeId || "");
   const unit = p ? (s ? sizePriceFor(p, s) : (p.price||0)) : 0;
+  const link = p && p.slug ? location.origin + "/product/" + p.slug : "";
   const ex = state.cart.find(x => x.key === key);
   if (ex) ex.qty += 1;
-  else state.cart.push({ key, id, sizeId: sizeId || "", qty: 1, name: p ? p.name : "Item", sizeName: s ? s.name : "", unit });
+  else state.cart.push({ key, id, sizeId: sizeId || "", qty: 1, name: p ? p.name : "Item", sizeName: s ? s.name : "", unit, link });
   saveCart(); cartCount(); renderCart();
   toast("Cart मा थपियो! 🛍");
 }
@@ -122,7 +123,8 @@ function cartLines() {
     const p = state.products.find(x => x.id === it.id);
     const s = it.sizeId ? (state.sizes||[]).find(x => x.id === it.sizeId) : null;
     const unit = p ? (s ? sizePriceFor(p, s) : (p.price||0)) : (it.unit||0);
-    lines.push({ name: p ? p.name : (it.name||"Item"), size: s ? s.name : (it.sizeName||""), qty: it.qty, unit });
+    const link = (p && p.slug) ? location.origin + "/product/" + p.slug : (it.link || "");
+    lines.push({ name: p ? p.name : (it.name||"Item"), size: s ? s.name : (it.sizeName||""), qty: it.qty, unit, link });
     total += unit * it.qty;
   });
   return { lines, total };
@@ -130,7 +132,10 @@ function cartLines() {
 function cartWaMsg() {
   const L = cartLines();
   let msg = `Namaste ${storeName()}! I would like to order:`;
-  L.lines.forEach((ln, i) => { msg += `\n${i+1}. ${ln.name}${ln.size ? " (" + ln.size + ")" : ""} x${ln.qty} — ${fmtMoney(ln.unit*ln.qty)}`; });
+  L.lines.forEach((ln, i) => {
+    msg += `\n${i+1}. ${ln.name}${ln.size ? " (" + ln.size + ")" : ""} x${ln.qty} — ${fmtMoney(ln.unit*ln.qty)}`;
+    if (ln.link) msg += `\n🔗 ${ln.link}`;
+  });
   msg += `\n\nTotal: ${fmtMoney(L.total)}`;
   msg += `\n\nPlease confirm availability. Thank you!`;
   return msg;
