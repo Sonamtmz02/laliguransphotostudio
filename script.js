@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v11 (SSR-aware + share fix + instant boot) */
+/* LALIGURANS USER PANEL - v12 (instant boot + smart infinite scroll) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -40,7 +40,7 @@ const HEART = `<svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 
 const SUN = `<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
 const MOON = `<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
 const SHARE_SVG = `<svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg>`;
-const state = { store: null, categories: null, products: [], sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "light", pmId: null, lbList: [], lbIndex: 0, share: null, pq: { last: null, done: false, loading: false }, searchMode: false };
+const state = { store: null, categories: null, products: [], sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "light", pmId: null, lbList: [], lbIndex: 0, share: null, pq: { last: null, done: false, loading: false }, searchMode: false, bootAll: null, pending: [] };
 let db = null;
 
 function $(id) { return document.getElementById(id); }
@@ -111,7 +111,7 @@ function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el 
 
 function renderAnnouncements() { const now = Date.now(); const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2)); const bar = $("annBar"); if (!act.length) { bar.hidden = true; return; } bar.hidden = false; bar.innerHTML = act.map(a => esc(a.message)).join("  ·  "); }
 function renderDrawer() { const cats = state.categories || []; $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>` + cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); }
-function renderCollections() { const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } el.innerHTML = cats.map(c => { const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join(""); }
+function renderCollections() { const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } const pool = state.bootAll || state.products; el.innerHTML = cats.map(c => { const img = imgUrl((pool.find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join(""); }
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
 
@@ -127,11 +127,36 @@ function matchesFilters(p) {
   return true; 
 }
 
+/* ===== v12: instant client-side pagination (load more + infinite scroll) ===== */
+function visibleFrom(list) { return (list||[]).filter(p => p.isActive !== false && matchesFilters(p)); }
+function sortLikeGrid(list) { return list.sort((a,b) => ((a.displayOrder??0)-(b.displayOrder??0)) || String(a.name||"").localeCompare(String(b.name||""))); }
+function renderPending(n) {
+  const batch = state.pending.splice(0, n || PAGE_SIZE);
+  if (!batch.length) return 0;
+  const fresh = batch.filter(p => !state.products.some(x => x.id === p.id));
+  state.products = state.products.concat(fresh);
+  $("productGrid").insertAdjacentHTML("beforeend", batch.map(productCard).join(""));
+  return batch.length;
+}
+function pendingSentinel() { sentinel(state.pending.length ? "" : (state.products.length ? "end" : "empty")); }
+function applyFilterInstant() {
+  if (!state.bootAll) return false;
+  state.products = [];
+  state.pq = { last: null, done: true, loading: false };
+  $("productGrid").innerHTML = "";
+  state.pending = sortLikeGrid(visibleFrom(state.bootAll));
+  renderPending(PAGE_SIZE);
+  pendingSentinel();
+  renderCollections();
+  renderHeroVisual();
+  return true;
+}
+
 function sentinel(stateTxt) { const s = $("scrollSentinel"); if (!s) return; s.innerHTML = stateTxt === "loading" ? `<div class="sk-line w60" style="margin:0 auto"></div>` : stateTxt === "error" ? `<button class="btn-ghost2" id="retryBtn">Retry</button>` : stateTxt === "end" ? `<p class="muted" style="text-align:center">❀ सबै products हेरिसक्नुभयो</p>` : stateTxt === "empty" ? `<p class="muted" style="text-align:center">❀ कुनै product भेटिएन</p>` : ""; const r = $("retryBtn"); if (r) r.addEventListener("click", () => loadProductsPage(false)); }
 async function loadProductsPage(reset) {
   if (state.pq.loading) return;
   if (!reset && state.pq.done) return;
-  if (reset) { state.products = []; state.pq = { last: null, done: false, loading: false }; $("productGrid").innerHTML = ""; }
+  if (reset) { state.products = []; state.pending = []; state.pq = { last: null, done: false, loading: false }; $("productGrid").innerHTML = ""; }
   state.pq.loading = true; sentinel("loading");
   try {
     let q = db.collection("products").limit(PAGE_SIZE);
@@ -158,11 +183,13 @@ async function loadProductsPage(reset) {
 }
 async function searchAll(q) {
   state.searchMode = true;
+  state.pending = [];
   try {
     const snap = await db.collection("products").where("isActive", "==", true).limit(100).get();
     const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     assignSlugsInPlace(all);
     state.products = all.filter(p => matchesFilters(p));
+    state.pq = { last: null, done: true, loading: false };
     $("productGrid").innerHTML = state.products.length ? state.products.map(productCard).join("") : `<p class="muted" style="grid-column:1/-1;text-align:center">❀ "${esc(q)}" को लागि कुनै product भेटिएन। "Birthday Frame" वा "Frame" खोज्नुहोस्।</p>`;
   } catch (e) { $("productGrid").innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center">Search load हुन सकेन। <button class="btn-ghost2" onclick="location.reload()">Retry</button></p>`; }
   sentinel("");
@@ -185,7 +212,7 @@ function productCard(p) {
     </div>
   </article>`;
 }
-function renderHeroVisual() { const imgs = []; (state.gallery||[]).forEach(g => { const u = imgUrl(g.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); if (!imgs.length) (state.products||[]).forEach(p => { const u = imgUrl(p.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); $("heroVisual").innerHTML = imgs.length ? `<span class="frame f1"><img src="${imgs[0]}" alt="" loading="eager" decoding="async"></span>${imgs[1] ? `<span class="frame f2"><img src="${imgs[1]}" alt="" loading="lazy" decoding="async"></span>` : ""}<span class="lens-deco"></span>` : `<span class="frame f1 motif"><i class="fl big">❀</i></span>`; }
+function renderHeroVisual() { const imgs = []; (state.gallery||[]).forEach(g => { const u = imgUrl(g.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); if (!imgs.length) (state.bootAll||state.products||[]).forEach(p => { const u = imgUrl(p.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); $("heroVisual").innerHTML = imgs.length ? `<span class="frame f1"><img src="${imgs[0]}" alt="" loading="eager" decoding="async"></span>${imgs[1] ? `<span class="frame f2"><img src="${imgs[1]}" alt="" loading="lazy" decoding="async"></span>` : ""}<span class="lens-deco"></span>` : `<span class="frame f1 motif"><i class="fl big">❀</i></span>`; }
 function syncPmFav() { const b = $("pmFav"); if (b && state.pmId) b.classList.toggle("on", state.favs.includes(state.pmId)); const pp = $("ppFav"); if (pp && state.pmId) pp.classList.toggle("on", state.favs.includes(state.pmId)); }
 
 function pushRecent(p) { try { let r = JSON.parse(localStorage.getItem("lgs_recent") || "[]"); r = r.filter(x => x.id !== p.id); r.unshift({ id: p.id, name: p.name, price: p.price, img: imgUrl(p.imageUrl), slug: p.slug }); r = r.slice(0, 8); localStorage.setItem("lgs_recent", JSON.stringify(r)); } catch {} }
@@ -194,8 +221,8 @@ function renderRecent() { try { const r = JSON.parse(localStorage.getItem("lgs_r
 async function renderRelated(p) {
   const el = $("ppRelated"); if (!el) return;
   if (!p || !p.id) { el.parentElement.hidden = true; return; }
-  let rel = state.products.filter(x => x.id !== p.id && x.categoryId === p.categoryId).slice(0, 4);
-  if (rel.length === 0 && db && p.categoryId) {
+  let rel = (state.bootAll || state.products).filter(x => x.id !== p.id && x.categoryId === p.categoryId).slice(0, 4);
+  if (rel.length === 0 && db && p.categoryId && !state.bootAll) {
     try {
       const snap = await db.collection("products").where("categoryId", "==", p.categoryId).where("isActive", "==", true).limit(5).get();
       rel = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.id !== p.id).slice(0, 4);
@@ -216,9 +243,8 @@ function renderStore() { const s = state.store || {}; const name = s.name || "La
 
 function showLanding() { hideRouteLoader(); $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
 
-/* Robust slug finder: checks state, then DB slug field, then regenerates slugs deterministically */
 async function findProductBySlug(slug) {
-  let p = state.products.find(x => x.slug === slug);
+  let p = (state.products.find(x => x.slug === slug)) || ((state.bootAll||[]).find(x => x.slug === slug));
   if (p) return p;
 
   try {
@@ -289,8 +315,8 @@ async function showCategoryPage(slug) {
   $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = false;
   const rs = $("relSec"); if (rs) rs.hidden = true;
   $("cvName").textContent = c.name; $("cvDesc").textContent = c.description || "";
-  let items = state.products.filter(p => p.categoryId === c.id);
-  if (items.length === 0 && db) {
+  let items = (state.bootAll || state.products).filter(p => p.categoryId === c.id);
+  if (items.length === 0 && db && !state.bootAll) {
     try {
       const snap = await db.collection("products").where("categoryId", "==", c.id).where("isActive", "==", true).limit(100).get();
       items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -315,10 +341,9 @@ function bindLive() {
   db.collection("announcements").onSnapshot(s => { state.announcements = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAnnouncements(); }, () => {});
   db.collection("storeInfo").doc("main").onSnapshot(s => { state.store = s.exists ? s.data() : null; renderStore(); }, () => {});
   db.collection("businessHours").doc("weekly").onSnapshot(s => { state.hours = s.exists ? s.data() : null; renderHours(); }, () => {});
-  db.collection("products").limit(1).onSnapshot(s => { if (!s.metadata.fromCache && state._loadedOnce && !location.pathname.startsWith("/product/")) { loadProductsPage(true); } state._loadedOnce = true; }, () => {});
+  db.collection("products").limit(1).onSnapshot(s => { if (!s.metadata.fromCache && state._loadedOnce && !location.pathname.startsWith("/product/")) { state.bootAll = null; state.pending = []; loadProductsPage(true); } state._loadedOnce = true; }, () => {});
 }
 
-/* ===== CHANGE 1: edge-cached boot data बाट instant render ===== */
 function bootFromSSR() {
   const el = document.getElementById("ssrBoot");
   if (!el) return false;
@@ -339,7 +364,6 @@ function init() {
   const rl = $("routeLoader");
   const isProductPath = location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/");
 
-  /* SSR-aware: if #ppName already has text (worker injected), product is ALREADY visible — skip spinner */
   const ssrPresent = isProductPath && $("ppName") && $("ppName").textContent && $("ppName").textContent.trim() !== "";
 
   if (isProductPath && !ssrPresent) {
@@ -363,20 +387,26 @@ function init() {
   applyTheme(localStorage.getItem("lgs_theme") || "light", false);
   renderServices();
 
-  /* ===== CHANGE 2: boot data भए तुरुन्तै सबै render ===== */
   if (bootFromSSR()) {
-    renderDrawer(); renderChips(); renderCollections(); renderGallery(); renderHeroVisual(); renderAnnouncements(); renderStore(); renderHours();
-    if (state._ssr && !location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) {
-      $("productGrid").innerHTML = state.products.filter(p => matchesFilters(p)).map(productCard).join("");
-      sentinel("");
+    renderDrawer(); renderChips(); renderGallery(); renderAnnouncements(); renderStore(); renderHours();
+    if (state._ssr) {
+      state.bootAll = sortLikeGrid(state.products.slice());
+      state.products = [];
+      if (!isProductPath) {
+        state.pq = { last: null, done: true, loading: false };
+        state.pending = state.bootAll.slice();
+        renderPending(PAGE_SIZE);
+        pendingSentinel();
+      }
     }
+    renderCollections(); renderHeroVisual();
   }
 
   updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
 
   document.addEventListener("click", e => { const a = e.target.closest("a.p-wa"); if (!a) return; e.preventDefault(); waOpen(a.dataset.waMsg || "", a.dataset.waDigits || ""); });
-  document.addEventListener("click", e => { const b = e.target.closest("[data-share]"); if (!b) return; e.stopPropagation(); const p = state.products.find(x => x.slug === b.dataset.share); if (p) openShare(p); });
+  document.addEventListener("click", e => { const b = e.target.closest("[data-share]"); if (!b) return; e.stopPropagation(); const p = (state.products.find(x => x.slug === b.dataset.share)) || ((state.bootAll||[]).find(x => x.slug === b.dataset.share)); if (p) openShare(p); });
   document.addEventListener("click", e => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = e.target.closest("a"); if (!a) return;
@@ -395,7 +425,7 @@ function init() {
   $("backdrop").addEventListener("click", closeDrawers);
   $("themeToggle").addEventListener("click", () => { const next = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark"; applyTheme(next); });
   $("searchToggle").addEventListener("click", () => { if ($("landingMain").hidden) { location.href = "/"; return; } const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus(); });
-  $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; loadProductsPage(true); } else { await searchAll(q); } }, 300));
+  $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; if (!applyFilterInstant()) loadProductsPage(true); } else { await searchAll(q); } }, 300));
 
   $("aboutBtn").addEventListener("click", () => { $("aboutModal").hidden = false; });
   $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
@@ -407,17 +437,17 @@ function init() {
 
   $("svcGrid").addEventListener("click", e => { const b = e.target.closest(".svc-card"); if (!b) return; document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b)); const s = SERVICES[+b.dataset.svc]; $("svcName").textContent = s.t; setWa($("svcWa"), `Namaste ${storeName()}! I would like to know more about: ${s.t}`); $("svcActions").hidden = false; });
 
-  $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; state.search = ""; $("searchInput").value = ""; renderChips(); renderDrawer(); state.searchMode = false; loadProductsPage(true); });
-  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
-  $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
+  $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; state.search = ""; $("searchInput").value = ""; renderChips(); renderDrawer(); state.searchMode = false; if (!applyFilterInstant()) loadProductsPage(true); });
+  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); if (!applyFilterInstant()) loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
+  $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); if (!applyFilterInstant()) loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
 
-  $("productGrid").addEventListener("click", e => { const f = e.target.closest("[data-fav]"); if (f) { toggleFav(f.dataset.fav); return; } if (e.target.closest("[data-share]")) return; if (e.target.closest("a")) return; const card = e.target.closest(".p-card"); if (card && card.dataset.id) { const p = state.products.find(x => x.id === card.dataset.id); if (p) openProductModal(p); } });
+  $("productGrid").addEventListener("click", e => { const f = e.target.closest("[data-fav]"); if (f) { toggleFav(f.dataset.fav); return; } if (e.target.closest("[data-share]")) return; if (e.target.closest("a")) return; const card = e.target.closest(".p-card"); if (card && card.dataset.id) { const p = (state.products.find(x => x.id === card.dataset.id)) || ((state.bootAll||[]).find(x => x.id === card.dataset.id)); if (p) openProductModal(p); } });
   $("pmClose").addEventListener("click", () => { $("productModal").hidden = true; state.pmId = null; });
   $("pmFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
   $("productModal").addEventListener("click", e => { if (e.target === $("productModal")) { $("productModal").hidden = true; state.pmId = null; } });
   $("ppFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
-  $("ppShare").addEventListener("click", () => { const p = state.products.find(x => x.id === state.pmId); if (p) openShare(p); });
+  $("ppShare").addEventListener("click", () => { const p = (state.products.find(x => x.id === state.pmId)) || ((state.bootAll||[]).find(x => x.id === state.pmId)); if (p) openShare(p); });
   $("cvShare").addEventListener("click", () => { const slug = location.pathname.split("/").pop(); const c = (state.categories||[]).find(x => catSlug(x) === slug); if (!c) return; state.share = { url: location.origin + "/category/" + slug, title: `${c.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${c.name}\n\nView Collection:` }; $("shareTitle").textContent = c.name; $("shNative").hidden = !navigator.share; $("shareModal").hidden = false; });
 
   $("shareClose").addEventListener("click", () => { $("shareModal").hidden = true; });
@@ -450,11 +480,11 @@ function init() {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   bindLive();
-  /* ===== CHANGE 3: boot data भए double-load रोक्ने ===== */
   if (!state._ssr) loadProductsPage(true);
   /* PRODUCT SHARING FIX: route() on load so direct/shared URLs open the exact product */
   route();
-  if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
+  /* v12 infinite scroll: memory-first, then Firestore cursor */
+  if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) { if (state.pending.length) { renderPending(PAGE_SIZE); pendingSentinel(); } else if (!state.pq.done) { loadProductsPage(false); } } }, { rootMargin: "300px" }).observe(ss); }
   setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
 }
 document.addEventListener("DOMContentLoaded", init);
