@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v7 (product sharing fix + all features) */
+/* LALIGURANS USER PANEL - v8 (new UI + product sharing fix + all features) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -111,7 +111,22 @@ function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el 
 
 function renderAnnouncements() { const now = Date.now(); const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2)); const bar = $("annBar"); if (!act.length) { bar.hidden = true; return; } bar.hidden = false; bar.innerHTML = act.map(a => esc(a.message)).join("  ·  "); }
 function renderDrawer() { const cats = state.categories || []; $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>` + cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); }
-function renderCollections() { const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } el.innerHTML = cats.map(c => { const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join(""); }
+function renderCollections() {
+  const cats = state.categories;
+  const el = $("colGrid");
+  if (!cats) { if (el) el.innerHTML = ""; return; }
+  el.innerHTML = cats.map(c => {
+    const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl);
+    return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-body"><strong>${esc(c.name)}</strong><span>${esc(c.description || "Handcrafted with love")}</span><span class="col-btn">Shop Now</span></span></button>`;
+  }).join("");
+  const qs = $("quickStrip");
+  if (qs) {
+    qs.innerHTML = cats.slice(0,5).map(c => {
+      const count = (state.products||[]).filter(p => p.categoryId === c.id).length;
+      return `<a class="q-card" href="/category/${catSlug(c)}"><span class="q-ic">❀</span><strong>${esc(c.name)}</strong><span>${count ? count + "+ Items" : "Collection"}</span></a>`;
+    }).join("") + `<a class="q-card" href="#collections"><span class="q-ic more">•••</span><strong>More</strong><span>View All</span></a>`;
+  }
+}
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
 
@@ -358,7 +373,7 @@ function init() {
   $("searchToggle").addEventListener("click", () => { if ($("landingMain").hidden) { location.href = "/"; return; } const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus(); });
   $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; loadProductsPage(true); } else { await searchAll(q); } }, 300));
 
-  $("aboutBtn").addEventListener("click", () => { $("aboutModal").hidden = false; });
+  $("aboutBtn").addEventListener("click", e => { e.preventDefault(); $("aboutModal").hidden = false; });
   $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
   $("aboutModal").addEventListener("click", e => { if (e.target === $("aboutModal")) $("aboutModal").hidden = true; });
   $("propCard").addEventListener("click", () => { $("propModal").hidden = false; });
@@ -405,6 +420,16 @@ function init() {
   $("lightbox").addEventListener("touchend", e => { if (lbX == null) return; const dx = e.changedTouches[0].clientX - lbX; if (dx > 48) lbNav(-1); else if (dx < -48) lbNav(1); lbX = null; }, { passive: true });
   $("lightbox").addEventListener("click", e => { if (e.target === $("lightbox")) $("lightbox").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; $("propModal").hidden = true; $("aboutModal").hidden = true; $("shareModal").hidden = true; closeDrawers(); } if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1); if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1); });
+
+  /* NEW UI bindings (carousel, subscribe, account) — additive only */
+  const carPrev = $("carPrev"), carNext = $("carNext");
+  if (carPrev) carPrev.addEventListener("click", () => $("productGrid").scrollBy({ left: -300, behavior: "smooth" }));
+  if (carNext) carNext.addEventListener("click", () => $("productGrid").scrollBy({ left: 300, behavior: "smooth" }));
+  const subBtn = $("subscribeBtn");
+  if (subBtn) subBtn.addEventListener("click", () => toast("धन्यवाद! Newsletter subscription चाँडै सुरु हुँदैछ।"));
+  const accBtn = $("accountBtn");
+  if (accBtn) accBtn.addEventListener("click", () => openDrawer("drawer"));
+
   revealize();
 
   if (typeof firebase === "undefined") { $("productGrid").innerHTML = `<p class="muted">Loading failed. Internet जाँच गर्नुहोस्।</p>`; return; }
