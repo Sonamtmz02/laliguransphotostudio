@@ -232,6 +232,7 @@ async function searchAll(q) {
   sentinel("");
 }
 function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
+function sizePriceText(p, s) { const v = (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price != null ? s.price : 0); return v ? fmtMoney(v) : ""; }
 function productCard(p) {
   const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHrefMsg(msg, waNumber()); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
   return `<article class="p-card" data-id="${p.id}">
