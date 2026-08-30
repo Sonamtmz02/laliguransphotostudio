@@ -19,7 +19,7 @@
 <link rel="icon" type="image/png" href="/logo.png">
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<link rel="stylesheet" href="/style.css?v=2" />
+<link rel="stylesheet" href="/style.css?v=4" />
 <script type="application/ld+json" id="jsonld">{}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Laligurans Photo Studio","url":"https://www.laliguransphotostudio.com.np/","logo":"https://www.laliguransphotostudio.com.np/logo.png","description":"Premium photo studio, frames, and personalized gifts in Chautara, Sindhupalchok, Nepal. 30+ years of trusted service.","foundingDate":"1995","telephone":"+97711620217","email":"laliguranstudio@gmail.com","founder":{"@type":"Person","name":"Surya Lal Shretha"},"address":{"@type":"PostalAddress","streetAddress":"Chautara","addressLocality":"Chautara","addressRegion":"Sindhupalchok","addressCountry":"NP"},"geo":{"@type":"GeoCoordinates","latitude":"27.7467","longitude":"85.6989"},"sameAs":["https://www.facebook.com/laliguransphotostudio","https://www.instagram.com/laliguransphotostudio"],"contactPoint":{"@type":"ContactPoint","telephone":"+97711620217","contactType":"customer service","availableLanguage":["Nepali","English"]}},{"@type":"WebSite","name":"Laligurans Photo Studio","url":"https://www.laliguransphotostudio.com.np/","inLanguage":"ne-NP","publisher":{"@id":"https://www.laliguransphotostudio.com.np/#organization"}},{"@type":"LocalBusiness","@id":"https://www.laliguransphotostudio.com.np/#localbusiness","name":"Laligurans Photo Studio","image":"https://www.laliguransphotostudio.com.np/logo.png","telephone":"+97711620217","email":"laliguranstudio@gmail.com","priceRange":"Rs. 200 - 5000","address":{"@type":"PostalAddress","streetAddress":"Chautara","addressLocality":"Chautara","addressRegion":"Sindhupalchok","postalCode":"45600","addressCountry":"NP"},"geo":{"@type":"GeoCoordinates","latitude":"27.7467","longitude":"85.6989"},"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"09:00","closes":"18:00"}],"sameAs":["https://www.facebook.com/laliguransphotostudio","https://www.instagram.com/laliguransphotostudio"]}]}</script>
 </head>
@@ -44,6 +44,11 @@
     <button id="favToggle" class="icon-btn heart" aria-label="Wishlist">
       <svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
       <span id="favCount" class="fav-count" hidden>0</span>
+    </button>
+    <!-- SNIPPET A: cart button -->
+    <button id="cartToggle" class="icon-btn" aria-label="Cart">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M6 7h12l1 14H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+      <span id="cartCount" class="fav-count" hidden>0</span>
     </button>
   </div>
 </header>
@@ -72,6 +77,16 @@
 <div id="favDrawer" class="drawer right" aria-label="Wishlist">
   <div class="drawer-head"><h3>Wishlist</h3><button id="favClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
   <div id="favList" class="drawer-cats"></div>
+</div>
+
+<!-- SNIPPET B: cart drawer -->
+<div id="cartDrawer" class="drawer right" aria-label="Cart">
+  <div class="drawer-head"><h3>Cart</h3><button id="cartClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div id="cartList" class="cart-list"></div>
+  <div class="cart-foot">
+    <p id="cartTotalRow" class="cart-total" hidden>Total: <span id="cartTotal">रु. 0</span></p>
+    <button id="cartWa" class="btn-cta small" type="button" hidden>Order via WhatsApp</button>
+  </div>
 </div>
 
 <div id="backdrop" class="backdrop" hidden></div>
@@ -174,6 +189,8 @@
         <div class="pp-actions">
           <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
           <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
+          <!-- SNIPPET C: add to cart -->
+          <button id="ppCart" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><path d="M6 7h12l1 14H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg> Add to Cart</button>
           <a id="ppWa" class="p-wa" href="#" target="_blank" rel="noopener">Enquire</a>
         </div>
       </div>
@@ -282,7 +299,7 @@
       <h3>सूर्यलाल श्रेष्ठ</h3>
       <p class="prop-role">प्रोप्राइटर · Laligurans Photo Studio</p>
     </div>
-    <p class="prop-bio">विगत करिब ३० वर्षदेखि यस स्टुडियोलाई निरन्तर रूपमा सञ्चालन गर्दै आउनुभएका सूर्यलाल श्रेष्ठ यस व्यवसायका प्रोप्राइटर हुनुहुन्छ। लामो समयदेखि स्थानीय ग्राहकसँग जोडिँदै, उहाँले आफ्नो मेहनत, अनुभव र ग्राहकप्रतिको आत्मीय व्यवहारमार्फत स्टुडियोलाई यहाँसम्म ल्याउनुभएको छ।</p>
+    <p class="prop-bio">विगत करिब ३० वर्षदेखि यस स्टुडियोलाई निरन्तर रूपमा सञ्चालन गर्दै आउनुभएका सूर्यलाल श्रेष्ठ यस व्यवसायका प्रोप्राइटर हुनुहुन्छ। लामो समयदेखि स्थानीय ग्राहकसँग जोडिँदै, उहाँको मेहनत, अनुभव र ग्राहकप्रतिको आत्मीय व्यवहारमार्फत स्टुडियोलाई यहाँसम्म ल्याउनुभएको छ।</p>
     <p class="prop-bio">उहाँको निरन्तर प्रयास र ग्राहकको विश्वास नै यस स्टुडियोको यात्राको महत्वपूर्ण आधार हो।</p>
     <p class="prop-phone">+977 9841486925</p>
     <div class="prop-btns">
@@ -319,8 +336,10 @@
 
 <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script defer src="/script.js?v=3"></script>
-  <script>
+  <script defer src="/script.js?v=4"></script>
+
+<!-- INSTANT SSR REVEAL: Firebase/script load हुनु अघि product तुरुन्तै देखाउँछ -->
+<script>
 (function(){
   try{
     var n = document.getElementById("ppName");
@@ -334,6 +353,6 @@
     }
   }catch(e){}
 })();
-  </script>
+</script>
 </body>
 </html>
