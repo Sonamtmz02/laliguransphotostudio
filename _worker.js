@@ -1,7 +1,8 @@
-/* LALIGURANS edge router v6 - image proxy + charset fix */
+/* LALIGURANS edge router v7 - WWW redirect + canonical fix */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
+const CANONICAL_DOMAIN = "https://www.laliguransphotostudio.com.np";
 
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
 function slugify(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"item";}
@@ -97,6 +98,13 @@ export default {
   async fetch(request, env, ctx){
     try{
       const url=new URL(request.url);
+      
+      /* WWW REDIRECT: non-www → www */
+      if(url.hostname==="laliguransphotostudio.com.np"){
+        const redirectUrl=`https://www.laliguransphotostudio.com.np${url.pathname}${url.search}${url.hash}`;
+        return Response.redirect(redirectUrl,301);
+      }
+      
       const p=url.pathname;
       if(request.method==="GET"){
         if(p==="/sitemap.xml")return await handleSitemap(request);
