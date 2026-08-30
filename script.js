@@ -44,6 +44,7 @@ const state = { store: null, categories: null, products: [], sizes: null, galler
 let db = null;
 
 function $(id) { return document.getElementById(id); }
+function hideRouteLoader() { const l = $("routeLoader"); if (l) l.hidden = true; }
 function esc(v) { return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
 function safeUrl(v) { const s = String(v||"").trim(); if (!s) return ""; try { const u = new URL(s); return ["https:","http:"].includes(u.protocol) ? s : ""; } catch { return ""; } }
 function imgUrl(v) { if (!v) return ""; const s = String(v); if (s.startsWith("http")) return s; if (s.startsWith("/api/")) return API_BASE + s; return ""; }
@@ -213,7 +214,7 @@ function renderHours() { const now = ktNow(); const days = (state.hours && state
 function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.href = href; el.hidden = false; } else el.hidden = true; }
 function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); } }
 
-function showLanding() { $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
+function showLanding() { hideRouteLoader(); $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
 async function findProductBySlug(slug) {
   let p = state.products.find(x => x.slug === slug);
   if (p) return p;
@@ -259,6 +260,7 @@ async function findProductBySlug(slug) {
 async function showProductPage(slug) {
   const p = await findProductBySlug(slug);
   if (!p) { showLanding(); return; }
+  hideRouteLoader();
   $("landingMain").hidden = true; $("categoryView").hidden = true; $("productView").hidden = false;
   const img = imgUrl(p.imageUrl); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
   $("ppImg").src = img || ""; $("ppImg").alt = `${p.name} - Laligurans Photo Studio`;
@@ -284,6 +286,7 @@ async function showProductPage(slug) {
 async function showCategoryPage(slug) {
   const c = (state.categories||[]).find(x => catSlug(x) === slug);
   if (!c) { showLanding(); return; }
+  hideRouteLoader();
   $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = false;
   const rs = $("relSec"); if (rs) rs.hidden = true;
   $("cvName").textContent = c.name; $("cvDesc").textContent = c.description || "";
