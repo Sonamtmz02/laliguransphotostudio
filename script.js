@@ -324,7 +324,7 @@ async function showProductPage(slug) {
   $("landingMain").hidden = true; $("categoryView").hidden = true; $("productView").hidden = false;
   state.pmId = p.id; state.pmSize = null;
   const img = imgUrl(p.imageUrl); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
-  $("ppImg").src = img || ""; $("ppImg").alt = `${p.name} - Laligurans Photo Studio`;
+  $("ppImg").src = img || ""; $("ppImg").alt = `${p.name} - Laligurans Photo Studio`; $("ppImg").setAttribute("fetchpriority", "high");
   const cr = $("ppCrumb"); if (cr) cr.innerHTML = `<a href="/">Home</a> › <a href="/category/${cat ? catSlug(cat) : ""}">${cat ? esc(cat.name) : "Products"}</a> › <span>${esc(p.name)}</span>`;
   $("ppCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE";
   $("ppName").textContent = p.name;
