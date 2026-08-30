@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v10 - robust SSR product body injection */
+/* LALIGURANS edge router v11 - SSR product body + edge-cached home boot data */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -11,6 +11,7 @@ function fmtMoney(n){return "रु. " + Number(n||0).toLocaleString();}
 function dv(v){if(v==null)return null;if(v.stringValue!==undefined)return v.stringValue;if(v.integerValue!==undefined)return Number(v.integerValue);if(v.numberValue!==undefined)return Number(v.numberValue);if(v.booleanValue!==undefined)return v.booleanValue;if(v.timestampValue!==undefined)return v.timestampValue;if(v.arrayValue)return(v.arrayValue.values||[]).map(dv);if(v.mapValue)return df(v.mapValue.fields||{});return null;}
 function df(f){const o={};for(const k in f)o[k]=dv(f[k]);return o;}
 async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);if(!r.ok)throw new Error("firestore "+r.status);const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();if(o.createdAt)o.createdAtMs=Date.parse(o.createdAt)||0;out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
+async function fetchDoc(pid,key,ref){try{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${ref}?key=${key}`;const r=await fetch(u);if(!r.ok)return null;const j=await r.json();if(!j.fields)return null;const o=df(j.fields);o.id=j.name.split("/").pop();return o;}catch(e){return null;}}
 function assignSlugs(list){const by=[...list].sort((a,b)=>(a.createdAtMs||0)-(b.createdAtMs||0));const used={};for(const p of by){let s=p.slug;if(!s){let base=slugify(p.name),n=2;s=base;while(used[s]){s=base+"-"+n;n++;}}while(used[s]){s=s+"-2";}used[s]=true;p.slug=s;}return list;}
 function publicImg(origin,p){if(!p.imageUrl)return "";if(p.imageUrl.startsWith("/api/img/"))return origin+"/img/"+p.imageUrl.replace("/api/img/","");if(p.imageUrl.startsWith("http"))return p.imageUrl;return "";}
 function injectCanonical(html,url){
@@ -43,7 +44,38 @@ async function handleSitemap(request){
   return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=300","x-sitemap-debug":debug}});
 }
 
-/* SSR product body — Enquire WA link सहित (JS load नहुँदा पनि काम गर्छ) */
+/* ===== NEW v11: HOME BOOT DATA (edge-cached) ===== */
+async function handleHome(request,env){
+  const origin=new URL(request.url).origin;
+  const shell=await shellHtml(env,request);
+  try{
+    const [prods,cats,sizes,gallery,anns,store,hours]=await Promise.all([
+      fetchDocs(PROJECT_ID,API_KEY,"products"),
+      fetchDocs(PROJECT_ID,API_KEY,"categories"),
+      fetchDocs(PROJECT_ID,API_KEY,"sizes"),
+      fetchDocs(PROJECT_ID,API_KEY,"gallery"),
+      fetchDocs(PROJECT_ID,API_KEY,"announcements"),
+      fetchDoc(PROJECT_ID,API_KEY,"storeInfo/main"),
+      fetchDoc(PROJECT_ID,API_KEY,"businessHours/weekly")
+    ]);
+    const payload={
+      products:assignSlugs(prods.filter(p=>p.isActive)).map(p=>({id:p.id,name:p.name,price:p.price,imageUrl:publicImg(origin,p),categoryId:p.categoryId,slug:p.slug,sizeIds:p.sizeIds||[],sizePrices:p.sizePrices||{},isFeatured:!!p.isFeatured,isAvailable:p.isAvailable!==false,description:p.description||"",keywords:Array.isArray(p.keywords)?p.keywords:[]})),
+      categories:cats.filter(c=>c.isActive).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)).map(c=>({id:c.id,name:c.name,description:c.description||""})),
+      sizes:sizes.filter(s=>s.isActive).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)).map(s=>({id:s.id,name:s.name,dimensions:s.dimensions||"",price:s.price||0})),
+      gallery:gallery.filter(g=>g.published).map(g=>({title:g.title||"",imageUrl:publicImg(origin,g)})),
+      announcements:(anns||[]).filter(a=>a.published===true).map(a=>({message:a.message,published:true,priorityRank:a.priorityRank||2})),
+      store:store||null,
+      hours:hours||null
+    };
+    let html=shell;
+    const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
+    html=html.replace("</body>",boot);
+    return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-boot":"ok"}});
+  }catch(e){
+    return new Response(shell,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=10","x-boot":"error:"+String(e.message||e)}});
+  }
+}
+
 function buildProductBody(p,cat,img,origin){
   const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
   const catSlug = cat ? slugify(cat.name) : "";
@@ -64,7 +96,6 @@ function buildProductBody(p,cat,img,origin){
   const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
     ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
     : "";
-
   return `<div class="wrap">
     <a href="/" class="pp-back">‹ Back to Home</a>
     <div class="pp-grid">
@@ -116,8 +147,6 @@ async function handleProduct(request,env,path){
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace(/(<meta name="twitter:image" id="twImage" content=")[^"]*(")/,`$1${img}$2`);
     html=injectCanonical(html,url);
-
-    /* ✅ v10 FIX: marker-based SSR injection (regex होइन — कहिल्यै fail हुँदैन) */
     const PV_START='<div id="productView" hidden>';
     const PV_END='<!-- CATEGORY PAGE -->';
     const si=html.indexOf(PV_START);
@@ -125,10 +154,7 @@ async function handleProduct(request,env,path){
     if(si!==-1 && ei!==-1){
       html=html.slice(0,si)+'<div id="productView">'+buildProductBody(p,cat,img,origin)+'</div>\n\n'+html.slice(ei);
     }
-    /* landing hide (exact string — <main> tag सँग मिल्छ) */
     html=html.split('<main id="landingMain">').join('<main id="landingMain" hidden>');
-    /* routeLoader लाई worker ले नछुने — client/inline script ले handle गर्छ */
-
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url,origin))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p><p>Availability: ${p.isAvailable===false?"Out of stock":"In stock"}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} | Laligurans Photo Studio">`:""}<p>Brand: Laligurans Photo Studio, Chautara, Sindhupalchok, Nepal</p></main></noscript>\n</head>`);
     return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-seo-debug":"ok"}});
   }catch(e){
@@ -173,6 +199,7 @@ export default {
       if(request.method==="GET"){
         if(p==="/sitemap.xml")return await handleSitemap(request);
         if(p.startsWith("/img/"))return await handleImg(p);
+        if(p==="/"||p==="/index.html")return await handleHome(request,env);
         if(p.startsWith("/product/"))return await handleProduct(request,env,p);
         if(p.startsWith("/category/"))return await handleCategory(request,env,p);
       }
