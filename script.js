@@ -298,7 +298,17 @@ function bindLive() {
 function init() {
   const rl = $("routeLoader");
   if (location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/")) { $("landingMain").hidden = true; if (rl) rl.hidden = false; }
-  setTimeout(() => { const l = $("routeLoader"); if (l && !l.hidden) { l.hidden = true; $("landingMain").hidden = false; } }, 6000);
+  setTimeout(() => { 
+  const l = $("routeLoader"); 
+  if (l && !l.hidden) { 
+    l.hidden = true; 
+    /* ========== PRODUCT SHARING FIX: only show landing if not on product/category page ========== */
+    if (!location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) {
+      $("landingMain").hidden = false; 
+    }
+    /* ========== END PRODUCT SHARING FIX ========== */
+  } 
+}, 6000);
   loadFavs(); favCount();
   applyTheme(localStorage.getItem("lgs_theme") || "light", false);
   renderServices();
