@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - final integrated v4 (bugs fixed, features preserved) */
+/* LALIGURANS USER PANEL - final integrated v5 (v4 + safety guards) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -54,7 +54,6 @@ function storeName() { return (state.store && state.store.name) || "Laligurans P
 function toast(m) { let t = document.getElementById("lgToast"); if (!t) { t = document.createElement("div"); t.id = "lgToast"; t.style.cssText = "position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#221f1e;color:#fff;padding:.7rem 1.1rem;border-radius:999px;z-index:99;font-size:.8rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.3);transition:opacity .3s"; document.body.appendChild(t); } t.textContent = m; t.style.opacity = "1"; clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = "0"; }, 2200); }
 function slugify(s) { return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "item"; }
 function catSlug(c) { return slugify(c.name); }
-/* FIXED: global used-map ले cross-batch duplicate slug रोक्छ */
 function assignSlugsInPlace(list) {
   const used = {};
   for (const p of state.products) if (p.slug) used[p.slug] = p.id;
@@ -85,7 +84,6 @@ function loadFavs() { try { state.favs = JSON.parse(localStorage.getItem("lgs_fa
 function saveFavs() { localStorage.setItem("lgs_favs", JSON.stringify(state.favs)); }
 function favCount() { const el = $("favCount"); el.textContent = state.favs.length; el.hidden = !state.favs.length; }
 function toggleFav(id) { state.favs = state.favs.includes(id) ? state.favs.filter(x => x !== id) : [...state.favs, id]; saveFavs(); favCount(); renderFavs(); syncPmFav(); const b = document.querySelector(`[data-fav="${id}"]`); if (b) b.classList.toggle("on", state.favs.includes(id)); }
-/* FIXED: unloaded fav products पनि Firestore बाट fetch हुन्छन् */
 async function renderFavs() {
   let items = state.products.filter(p => state.favs.includes(p.id));
   const missing = state.favs.filter(id => !items.some(p => p.id === id));
@@ -112,12 +110,10 @@ function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el 
 
 function renderAnnouncements() { const now = Date.now(); const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2)); const bar = $("annBar"); if (!act.length) { bar.hidden = true; return; } bar.hidden = false; bar.innerHTML = act.map(a => esc(a.message)).join("  ·  "); }
 function renderDrawer() { const cats = state.categories || []; $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>` + cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); }
-/* FIXED: clean image expression */
 function renderCollections() { const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } el.innerHTML = cats.map(c => { const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join(""); }
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
 
-/* ===== INFINITE SCROLL — FIXED: orderBy हटाइयो (createdAt नभएका products पनि आउँछन्) ===== */
 function matchesFilters(p) { if (state.catFilter !== "all" && p.categoryId !== state.catFilter) return false; if (state.search) { const q = state.search.toLowerCase(); if (!(p.name||"").toLowerCase().includes(q) && !(p.description||"").toLowerCase().includes(q)) return false; } return true; }
 function sentinel(stateTxt) { const s = $("scrollSentinel"); if (!s) return; s.innerHTML = stateTxt === "loading" ? `<div class="sk-line w60" style="margin:0 auto"></div>` : stateTxt === "error" ? `<button class="btn-ghost2" id="retryBtn">Retry</button>` : stateTxt === "end" ? `<p class="muted" style="text-align:center">❀ सबै products हेरिसक्नुभयो</p>` : stateTxt === "empty" ? `<p class="muted" style="text-align:center">❀ कुनै product भेटिएन</p>` : ""; const r = $("retryBtn"); if (r) r.addEventListener("click", () => loadProductsPage(false)); }
 async function loadProductsPage(reset) {
@@ -183,7 +179,6 @@ function syncPmFav() { const b = $("pmFav"); if (b && state.pmId) b.classList.to
 function pushRecent(p) { try { let r = JSON.parse(localStorage.getItem("lgs_recent") || "[]"); r = r.filter(x => x.id !== p.id); r.unshift({ id: p.id, name: p.name, price: p.price, img: imgUrl(p.imageUrl), slug: p.slug }); r = r.slice(0, 8); localStorage.setItem("lgs_recent", JSON.stringify(r)); } catch {} }
 function renderRecent() { try { const r = JSON.parse(localStorage.getItem("lgs_recent") || "[]"); const el = $("recentRow"); if (!el) return; if (!r.length) { el.parentElement.hidden = true; return; } el.parentElement.hidden = false; el.innerHTML = r.map(x => `<a class="recent-card" href="/product/${x.slug||""}">${x.img ? `<img src="${x.img}" alt="${esc(x.name)}" loading="lazy">` : `<div class="p-noimg">${CAM}</div>`}<span>${esc(x.name)}</span><b>${fmtMoney(x.price)}</b></a>`).join(""); } catch {} }
 
-/* FIXED: related products मा query fallback */
 async function renderRelated(p) {
   const el = $("ppRelated"); if (!el) return;
   if (!p || !p.id) { el.parentElement.hidden = true; return; }
@@ -205,9 +200,9 @@ function openLightbox(i) { state.lbIndex = i; const it = state.lbList[i]; if (!i
 function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbIndex + d + state.lbList.length) % state.lbList.length; openLightbox(state.lbIndex); }
 function renderHours() { const now = ktNow(); const days = (state.hours && state.hours.days) || {}; $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join(""); refreshBadge(); }
 function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.href = href; el.hidden = false; } else el.hidden = true; }
-function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org", "@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); } }
+function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); } }
 
-function showLanding() { $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; renderRecent(); }
+function showLanding() { $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
 async function findProductBySlug(slug) {
   let p = state.products.find(x => x.slug === slug);
   if (p) return p;
@@ -223,7 +218,7 @@ async function showProductPage(slug) {
   $("landingMain").hidden = true; $("categoryView").hidden = true; $("productView").hidden = false;
   const img = imgUrl(p.imageUrl); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
   $("ppImg").src = img || ""; $("ppImg").alt = `${p.name} - Laligurans Photo Studio`;
-  $("ppCrumb").innerHTML = `<a href="/">Home</a> › <a href="/category/${cat ? catSlug(cat) : ""}">${cat ? esc(cat.name) : "Products"}</a> › <span>${esc(p.name)}</span>`;
+  const cr = $("ppCrumb"); if (cr) cr.innerHTML = `<a href="/">Home</a> › <a href="/category/${cat ? catSlug(cat) : ""}">${cat ? esc(cat.name) : "Products"}</a> › <span>${esc(p.name)}</span>`;
   $("ppCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE";
   $("ppName").textContent = p.name;
   $("ppDesc").textContent = p.description || "";
@@ -237,11 +232,11 @@ async function showProductPage(slug) {
   renderRelated(p); pushRecent(p); renderRecent();
   window.scrollTo(0,0);
 }
-/* FIXED: category page मा पूरा product list query बाट */
 async function showCategoryPage(slug) {
   const c = (state.categories||[]).find(x => catSlug(x) === slug);
   if (!c) { showLanding(); return; }
   $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = false;
+  const rs = $("relSec"); if (rs) rs.hidden = true;
   $("cvName").textContent = c.name; $("cvDesc").textContent = c.description || "";
   let items = state.products.filter(p => p.categoryId === c.id);
   if (items.length === 0 && db) {
@@ -358,7 +353,7 @@ function init() {
   db = firebase.firestore();
   bindLive();
   loadProductsPage(true);
-  if ("IntersectionObserver" in window) { new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe($("scrollSentinel")); }
+  if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
   setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
 }
 document.addEventListener("DOMContentLoaded", init);
