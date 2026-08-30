@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - final integrated v6 (v5 + Phase 3 keywords support) */
+/* LALIGURANS USER PANEL - v7 (product sharing fix + all features) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -114,7 +114,6 @@ function renderCollections() { const el = $("colGrid"); const cats = state.categ
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
 
-/* ========== PHASE 3 ADDITION: keywords search support ========== */
 function matchesFilters(p) { 
   if (state.catFilter !== "all" && p.categoryId !== state.catFilter) return false; 
   if (state.search) { 
@@ -126,7 +125,6 @@ function matchesFilters(p) {
   } 
   return true; 
 }
-/* ========== END PHASE 3 ADDITION ========== */
 
 function sentinel(stateTxt) { const s = $("scrollSentinel"); if (!s) return; s.innerHTML = stateTxt === "loading" ? `<div class="sk-line w60" style="margin:0 auto"></div>` : stateTxt === "error" ? `<button class="btn-ghost2" id="retryBtn">Retry</button>` : stateTxt === "end" ? `<p class="muted" style="text-align:center">❀ सबै products हेरिसक्नुभयो</p>` : stateTxt === "empty" ? `<p class="muted" style="text-align:center">❀ कुनै product भेटिएन</p>` : ""; const r = $("retryBtn"); if (r) r.addEventListener("click", () => loadProductsPage(false)); }
 async function loadProductsPage(reset) {
@@ -235,6 +233,11 @@ async function showProductPage(slug) {
   $("ppCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE";
   $("ppName").textContent = p.name;
   $("ppDesc").textContent = p.description || "";
+  const oldKw = document.getElementById('ppKwHidden'); if (oldKw) oldKw.remove();
+  if (Array.isArray(p.keywords) && p.keywords.length) {
+    const kw = document.createElement('div'); kw.id = 'ppKwHidden'; kw.style.cssText = 'position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none'; kw.setAttribute('aria-hidden', 'true'); kw.textContent = 'Related: ' + p.keywords.join(', ');
+    const desc = $("ppDesc"); if (desc && desc.parentNode) desc.parentNode.insertBefore(kw, desc.nextSibling);
+  }
   $("ppSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(sizePriceFor(p, s))}</span></div>`; }).join("") : "";
   $("ppPrice").textContent = fmtMoney(p.price);
   $("ppAvail").innerHTML = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
@@ -242,21 +245,6 @@ async function showProductPage(slug) {
   setWa($("ppWa"), productWaMsg(p));
   const url = location.origin + "/product/" + p.slug;
   setSeo({ title: `${p.name} | Laligurans Photo Studio`, desc: p.description || `${p.name} from Laligurans Photo Studio.`, image: img, url, type: "product" });
-
-  /* ========== PHASE 3 ADDITION: hidden keywords for SEO ========== */
-  const oldKw = document.getElementById('ppKwHidden');
-  if (oldKw) oldKw.remove();
-  if (Array.isArray(p.keywords) && p.keywords.length) {
-    const kw = document.createElement('div');
-    kw.id = 'ppKwHidden';
-    kw.style.cssText = 'position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none';
-    kw.setAttribute('aria-hidden', 'true');
-    kw.textContent = 'Related: ' + p.keywords.join(', ');
-    const desc = $("ppDesc");
-    if (desc && desc.parentNode) desc.parentNode.insertBefore(kw, desc.nextSibling);
-  }
-  /* ========== END PHASE 3 ADDITION ========== */
-
   renderRelated(p); pushRecent(p); renderRecent();
   window.scrollTo(0,0);
 }
@@ -297,18 +285,15 @@ function bindLive() {
 
 function init() {
   const rl = $("routeLoader");
-  if (location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/")) { $("landingMain").hidden = true; if (rl) rl.hidden = false; }
+  const isProductPath = location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/");
+  if (isProductPath) { $("landingMain").hidden = true; if (rl) rl.hidden = false; }
   setTimeout(() => { 
-  const l = $("routeLoader"); 
-  if (l && !l.hidden) { 
-    l.hidden = true; 
-    /* ========== PRODUCT SHARING FIX: only show landing if not on product/category page ========== */
-    if (!location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) {
-      $("landingMain").hidden = false; 
-    }
-    /* ========== END PRODUCT SHARING FIX ========== */
-  } 
-}, 6000);
+    const l = $("routeLoader"); 
+    if (l && !l.hidden) { 
+      l.hidden = true; 
+      if (!location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) { $("landingMain").hidden = false; }
+    } 
+  }, 6000);
   loadFavs(); favCount();
   applyTheme(localStorage.getItem("lgs_theme") || "light", false);
   renderServices();
@@ -390,10 +375,10 @@ function init() {
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   bindLive();
-loadProductsPage(true);
-/* ========== PRODUCT SHARING FIX: route() call on page load ========== */
-route();
-/* ========== END PRODUCT SHARING FIX ========== */
-if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
-setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
+  loadProductsPage(true);
+  /* PRODUCT SHARING FIX: route() on load so direct/shared URLs open the exact product */
+  route();
+  if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
+  setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
+}
 document.addEventListener("DOMContentLoaded", init);
