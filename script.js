@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - final integrated v5 (v4 + safety guards) */
+/* LALIGURANS USER PANEL - final integrated v6 (v5 + Phase 3 keywords support) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -114,7 +114,20 @@ function renderCollections() { const el = $("colGrid"); const cats = state.categ
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
 
-function matchesFilters(p) { if (state.catFilter !== "all" && p.categoryId !== state.catFilter) return false; if (state.search) { const q = state.search.toLowerCase(); if (!(p.name||"").toLowerCase().includes(q) && !(p.description||"").toLowerCase().includes(q)) return false; } return true; }
+/* ========== PHASE 3 ADDITION: keywords search support ========== */
+function matchesFilters(p) { 
+  if (state.catFilter !== "all" && p.categoryId !== state.catFilter) return false; 
+  if (state.search) { 
+    const q = state.search.toLowerCase(); 
+    const inName = (p.name||"").toLowerCase().includes(q);
+    const inDesc = (p.description||"").toLowerCase().includes(q);
+    const inKw = Array.isArray(p.keywords) && p.keywords.some(k => (k||"").toLowerCase().includes(q));
+    if (!inName && !inDesc && !inKw) return false; 
+  } 
+  return true; 
+}
+/* ========== END PHASE 3 ADDITION ========== */
+
 function sentinel(stateTxt) { const s = $("scrollSentinel"); if (!s) return; s.innerHTML = stateTxt === "loading" ? `<div class="sk-line w60" style="margin:0 auto"></div>` : stateTxt === "error" ? `<button class="btn-ghost2" id="retryBtn">Retry</button>` : stateTxt === "end" ? `<p class="muted" style="text-align:center">❀ सबै products हेरिसक्नुभयो</p>` : stateTxt === "empty" ? `<p class="muted" style="text-align:center">❀ कुनै product भेटिएन</p>` : ""; const r = $("retryBtn"); if (r) r.addEventListener("click", () => loadProductsPage(false)); }
 async function loadProductsPage(reset) {
   if (state.pq.loading) return;
@@ -229,6 +242,21 @@ async function showProductPage(slug) {
   setWa($("ppWa"), productWaMsg(p));
   const url = location.origin + "/product/" + p.slug;
   setSeo({ title: `${p.name} | Laligurans Photo Studio`, desc: p.description || `${p.name} from Laligurans Photo Studio.`, image: img, url, type: "product" });
+
+  /* ========== PHASE 3 ADDITION: hidden keywords for SEO ========== */
+  const oldKw = document.getElementById('ppKwHidden');
+  if (oldKw) oldKw.remove();
+  if (Array.isArray(p.keywords) && p.keywords.length) {
+    const kw = document.createElement('div');
+    kw.id = 'ppKwHidden';
+    kw.style.cssText = 'position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none';
+    kw.setAttribute('aria-hidden', 'true');
+    kw.textContent = 'Related: ' + p.keywords.join(', ');
+    const desc = $("ppDesc");
+    if (desc && desc.parentNode) desc.parentNode.insertBefore(kw, desc.nextSibling);
+  }
+  /* ========== END PHASE 3 ADDITION ========== */
+
   renderRelated(p); pushRecent(p); renderRecent();
   window.scrollTo(0,0);
 }
