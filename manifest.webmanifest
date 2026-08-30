@@ -1,0 +1,16 @@
+{
+  "name": "Laligurans Photo Studio",
+  "short_name": "Laligurans",
+  "description": "सम्झनाको लागी फोटो, फोटोको लागी गुराँस। Premium photography, prints and frames.",
+  "lang": "ne-NP",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf6ef",
+  "theme_color": "#b3232f",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
