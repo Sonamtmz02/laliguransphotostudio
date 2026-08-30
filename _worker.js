@@ -1,7 +1,8 @@
-/* LALIGURANS edge router v9 - SSR product body + stale cache */
+/* LALIGURANS edge router v10 - robust SSR product body injection */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
+const WA_DIGITS = "9779768385368";
 
 function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
 function escAttr(s){return esc(s).replaceAll("'","&#39;");}
@@ -42,26 +43,24 @@ async function handleSitemap(request){
   return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=300","x-sitemap-debug":debug}});
 }
 
-/* NEW: build the full product detail HTML (name, image, price, desc, etc.) */
-function buildProductBody(p,cat,img){
+/* SSR product body — Enquire WA link सहित (JS load नहुँदा पनि काम गर्छ) */
+function buildProductBody(p,cat,img,origin){
   const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
   const catSlug = cat ? slugify(cat.name) : "";
   const catLabel = cat ? esc(cat.name) : "Products";
-  const desc = esc(p.description || "");
   const name = esc(p.name);
+  const desc = esc(p.description || "");
   const price = fmtMoney(p.price || 0);
-  const availHtml = p.isAvailable === false
-    ? `<span class="badge red">Currently unavailable</span>`
-    : `<span class="badge green">Available</span>`;
+  const availHtml = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
+  const waMsg = `Namaste Laligurans Photo Studio!\nI want to order: ${p.name}\nPrice: ${price}\nProduct: ${origin}/product/${p.slug}`;
+  const waHref = "https://wa.me/" + WA_DIGITS + "?text=" + encodeURIComponent(waMsg);
   const sizes = (p.sizeIds || []).map(id => {
     const s = (p._sizes || []).find(x => x.id === id);
     if (!s) return "";
     const pr = p.sizePrices && p.sizePrices[id] != null ? p.sizePrices[id] : (s.price || 0);
     return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(pr)}</span></div>`;
   }).filter(Boolean).join("");
-  const sizesHtml = sizes
-    ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}`
-    : "";
+  const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
   const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
     ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
     : "";
@@ -82,7 +81,7 @@ function buildProductBody(p,cat,img){
         <div class="pp-actions">
           <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
           <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
-          <a id="ppWa" class="p-wa" href="#" target="_blank" rel="noopener">Enquire</a>
+          <a id="ppWa" class="p-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">Enquire</a>
         </div>
       </div>
     </div>
@@ -99,7 +98,7 @@ async function handleProduct(request,env,path){
     const p=assignSlugs(prods.filter(x=>x.isActive)).find(x=>x.slug===slug);
     if(!p)return notFound(origin);
     const cat=cats.find(c=>c.id===p.categoryId);
-    p._sizes = sizes.filter(s => s.isActive);
+    p._sizes=sizes.filter(s=>s.isActive);
     const img=publicImg(origin,p);
     const url=origin+"/product/"+p.slug;
     const title=`${p.name} | Laligurans Photo Studio`;
@@ -117,11 +116,19 @@ async function handleProduct(request,env,path){
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=html.replace(/(<meta name="twitter:image" id="twImage" content=")[^"]*(")/,`$1${img}$2`);
     html=injectCanonical(html,url);
-    /* Inject SSR body + un-hide productView + hide landingMain + hide routeLoader */
-    html=html.replace(/<div id="landingMain">/, `<main id="landingMain" hidden>`);
-    html=html.replace(/<div id="routeLoader"[^>]*>/, `<div id="routeLoader" hidden style="position:fixed;inset:0;display:none;background:#faf6ef;z-index:99">`);
-    html=html.replace(/<div id="productView" hidden>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<!-- CATEGORY PAGE -->/,
-      `<div id="productView">${buildProductBody(p,cat,img)}</div>\n<!-- CATEGORY PAGE -->`);
+
+    /* ✅ v10 FIX: marker-based SSR injection (regex होइन — कहिल्यै fail हुँदैन) */
+    const PV_START='<div id="productView" hidden>';
+    const PV_END='<!-- CATEGORY PAGE -->';
+    const si=html.indexOf(PV_START);
+    const ei=html.indexOf(PV_END);
+    if(si!==-1 && ei!==-1){
+      html=html.slice(0,si)+'<div id="productView">'+buildProductBody(p,cat,img,origin)+'</div>\n\n'+html.slice(ei);
+    }
+    /* landing hide (exact string — <main> tag सँग मिल्छ) */
+    html=html.split('<main id="landingMain">').join('<main id="landingMain" hidden>');
+    /* routeLoader लाई worker ले नछुने — client/inline script ले handle गर्छ */
+
     html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(jsonld(p,cat,img,url,origin))}</script>\n<noscript><main><h1>${esc(p.name)}</h1><p>${esc(desc)}</p><p>Price: NPR ${Number(p.price||0)}</p><p>Availability: ${p.isAvailable===false?"Out of stock":"In stock"}</p>${cat?`<p>Category: ${esc(cat.name)}</p>`:""}${img?`<img src="${img}" alt="${esc(p.name)} | Laligurans Photo Studio">`:""}<p>Brand: Laligurans Photo Studio, Chautara, Sindhupalchok, Nepal</p></main></noscript>\n</head>`);
     return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-seo-debug":"ok"}});
   }catch(e){
