@@ -475,7 +475,7 @@ function init() {
   });
   window.addEventListener("popstate", () => route());
 
-  $("navToggle").addEventListener("click", () => openDrawer("drawer"));
+  $("navToggle").addEventListener("click", () => openDrawer("drawer")); $("drawer").addEventListener("click", e => { if (e.target.closest("a,button")) setTimeout(closeDrawers, 60); });
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
   $("cartToggle").addEventListener("click", () => { renderCart(); openDrawer("cartDrawer"); });
   $("cartClose").addEventListener("click", closeDrawers);
