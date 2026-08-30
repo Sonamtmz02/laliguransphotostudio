@@ -1,5 +1,6 @@
 /* ══ LALI GURANS — NEW UI (photo-matched) ══ */
 *{margin:0;padding:0;box-sizing:border-box}
+[hidden]{display:none!important}
 :root{--mar:#9e1b32;--mar-d:#7c1226;--mar-l:#c22a44;--cream:#f7ede4;--gold:#d9a441}
 body.light{--bg:#faf5ef;--card:#ffffff;--ink:#26221f;--mut:#7a716a;--line:#ecdfd5;--soft:#f6ece4}
 body.dark{--bg:#171310;--card:#221b17;--ink:#f3ede7;--mut:#b3a89f;--line:#352b24;--soft:#1e1814}
