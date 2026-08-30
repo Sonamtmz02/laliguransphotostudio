@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v12 (instant boot + smart infinite scroll) */
+/* LALIGURANS USER PANEL - v12 (cart + WA checkout + instant boot) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -40,7 +40,8 @@ const HEART = `<svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 
 const SUN = `<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`;
 const MOON = `<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
 const SHARE_SVG = `<svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg>`;
-const state = { store: null, categories: null, products: [], sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], mapQ: "", theme: "light", pmId: null, lbList: [], lbIndex: 0, share: null, pq: { last: null, done: false, loading: false }, searchMode: false, bootAll: null, pending: [] };
+const BAG = `<svg class="ic" viewBox="0 0 24 24"><path d="M6 7h12l1 14H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>`;
+const state = { store: null, categories: null, products: [], sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], cart: [], mapQ: "", theme: "light", pmId: null, pmSize: null, lbList: [], lbIndex: 0, share: null, pq: { last: null, done: false, loading: false }, searchMode: false };
 let db = null;
 
 function $(id) { return document.getElementById(id); }
@@ -98,6 +99,64 @@ async function renderFavs() {
   $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`;
 }
 
+/* ===== CART (100% free: localStorage + WhatsApp) ===== */
+function loadCart() { try { state.cart = JSON.parse(localStorage.getItem("lgs_cart") || "[]"); } catch { state.cart = []; } }
+function saveCart() { localStorage.setItem("lgs_cart", JSON.stringify(state.cart)); }
+function cartCount() { const el = $("cartCount"); if (!el) return; const n = state.cart.reduce((a,x)=>a+(x.qty||0),0); el.textContent = n; el.hidden = !n; }
+function addToCart(id, sizeId) {
+  const p = state.products.find(x => x.id === id);
+  const s = sizeId ? (state.sizes||[]).find(x => x.id === sizeId) : null;
+  const key = id + "|" + (sizeId || "");
+  const unit = p ? (s ? sizePriceFor(p, s) : (p.price||0)) : 0;
+  const ex = state.cart.find(x => x.key === key);
+  if (ex) ex.qty += 1;
+  else state.cart.push({ key, id, sizeId: sizeId || "", qty: 1, name: p ? p.name : "Item", sizeName: s ? s.name : "", unit });
+  saveCart(); cartCount(); renderCart();
+  toast("Cart मा थपियो! 🛍");
+}
+function cartChange(key, d) { const it = state.cart.find(x => x.key === key); if (!it) return; it.qty += d; if (it.qty <= 0) state.cart = state.cart.filter(x => x.key !== key); saveCart(); cartCount(); renderCart(); }
+function cartRemove(key) { state.cart = state.cart.filter(x => x.key !== key); saveCart(); cartCount(); renderCart(); }
+function cartLines() {
+  const lines = []; let total = 0;
+  state.cart.forEach(it => {
+    const p = state.products.find(x => x.id === it.id);
+    const s = it.sizeId ? (state.sizes||[]).find(x => x.id === it.sizeId) : null;
+    const unit = p ? (s ? sizePriceFor(p, s) : (p.price||0)) : (it.unit||0);
+    lines.push({ name: p ? p.name : (it.name||"Item"), size: s ? s.name : (it.sizeName||""), qty: it.qty, unit });
+    total += unit * it.qty;
+  });
+  return { lines, total };
+}
+function cartWaMsg() {
+  const L = cartLines();
+  let msg = `Namaste ${storeName()}! I would like to order:`;
+  L.lines.forEach((ln, i) => { msg += `\n${i+1}. ${ln.name}${ln.size ? " (" + ln.size + ")" : ""} x${ln.qty} — ${fmtMoney(ln.unit*ln.qty)}`; });
+  msg += `\n\nTotal: ${fmtMoney(L.total)}`;
+  msg += `\n\nPlease confirm availability. Thank you!`;
+  return msg;
+}
+function renderCart() {
+  const el = $("cartList"); if (!el) return;
+  const w = $("cartWa"), t = $("cartTotalRow");
+  if (!state.cart.length) {
+    el.innerHTML = `<p class="muted" style="padding:0 .4rem">Cart खाली छ।<br>Product को 🛍 button थिचेर थप्नुहोस्।</p>`;
+    if (w) w.hidden = true; if (t) t.hidden = true;
+    return;
+  }
+  const L = cartLines();
+  el.innerHTML = L.lines.map((ln, i) => {
+    const it = state.cart[i];
+    return `<div class="cart-row">
+      <div class="cart-info"><strong>${esc(ln.name)}</strong>${ln.size ? `<span>Size: ${esc(ln.size)}</span>` : ""}<span>${fmtMoney(ln.unit)} each</span></div>
+      <div class="cart-qty"><button data-cq="-1" data-key="${esc(it.key)}" aria-label="Less">−</button><span>${it.qty}</span><button data-cq="1" data-key="${esc(it.key)}" aria-label="More">+</button></div>
+      <button class="cart-rm" data-crm="${esc(it.key)}" aria-label="Remove">✕</button>
+    </div>`;
+  }).join("");
+  $("cartTotal").textContent = fmtMoney(L.total);
+  if (w) w.hidden = false; if (t) t.hidden = false;
+}
+/* ===== END CART ===== */
+
 function ktParts() { return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); }
 function ktNow() { const g = t => ktParts().find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
 function toMin(v) { if (!v) return 0; const [h,m] = String(v).split(":").map(Number); return (h||0)*60+(m||0); }
@@ -111,7 +170,7 @@ function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el 
 
 function renderAnnouncements() { const now = Date.now(); const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2)); const bar = $("annBar"); if (!act.length) { bar.hidden = true; return; } bar.hidden = false; bar.innerHTML = act.map(a => esc(a.message)).join("  ·  "); }
 function renderDrawer() { const cats = state.categories || []; $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>` + cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); }
-function renderCollections() { const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } const pool = state.bootAll || state.products; el.innerHTML = cats.map(c => { const img = imgUrl((pool.find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join(""); }
+function renderCollections() { const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } el.innerHTML = cats.map(c => { const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join(""); }
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
 
@@ -127,36 +186,11 @@ function matchesFilters(p) {
   return true; 
 }
 
-/* ===== v12: instant client-side pagination (load more + infinite scroll) ===== */
-function visibleFrom(list) { return (list||[]).filter(p => p.isActive !== false && matchesFilters(p)); }
-function sortLikeGrid(list) { return list.sort((a,b) => ((a.displayOrder??0)-(b.displayOrder??0)) || String(a.name||"").localeCompare(String(b.name||""))); }
-function renderPending(n) {
-  const batch = state.pending.splice(0, n || PAGE_SIZE);
-  if (!batch.length) return 0;
-  const fresh = batch.filter(p => !state.products.some(x => x.id === p.id));
-  state.products = state.products.concat(fresh);
-  $("productGrid").insertAdjacentHTML("beforeend", batch.map(productCard).join(""));
-  return batch.length;
-}
-function pendingSentinel() { sentinel(state.pending.length ? "" : (state.products.length ? "end" : "empty")); }
-function applyFilterInstant() {
-  if (!state.bootAll) return false;
-  state.products = [];
-  state.pq = { last: null, done: true, loading: false };
-  $("productGrid").innerHTML = "";
-  state.pending = sortLikeGrid(visibleFrom(state.bootAll));
-  renderPending(PAGE_SIZE);
-  pendingSentinel();
-  renderCollections();
-  renderHeroVisual();
-  return true;
-}
-
 function sentinel(stateTxt) { const s = $("scrollSentinel"); if (!s) return; s.innerHTML = stateTxt === "loading" ? `<div class="sk-line w60" style="margin:0 auto"></div>` : stateTxt === "error" ? `<button class="btn-ghost2" id="retryBtn">Retry</button>` : stateTxt === "end" ? `<p class="muted" style="text-align:center">❀ सबै products हेरिसक्नुभयो</p>` : stateTxt === "empty" ? `<p class="muted" style="text-align:center">❀ कुनै product भेटिएन</p>` : ""; const r = $("retryBtn"); if (r) r.addEventListener("click", () => loadProductsPage(false)); }
 async function loadProductsPage(reset) {
   if (state.pq.loading) return;
   if (!reset && state.pq.done) return;
-  if (reset) { state.products = []; state.pending = []; state.pq = { last: null, done: false, loading: false }; $("productGrid").innerHTML = ""; }
+  if (reset) { state.products = []; state.pq = { last: null, done: false, loading: false }; $("productGrid").innerHTML = ""; }
   state.pq.loading = true; sentinel("loading");
   try {
     let q = db.collection("products").limit(PAGE_SIZE);
@@ -183,13 +217,11 @@ async function loadProductsPage(reset) {
 }
 async function searchAll(q) {
   state.searchMode = true;
-  state.pending = [];
   try {
     const snap = await db.collection("products").where("isActive", "==", true).limit(100).get();
     const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     assignSlugsInPlace(all);
     state.products = all.filter(p => matchesFilters(p));
-    state.pq = { last: null, done: true, loading: false };
     $("productGrid").innerHTML = state.products.length ? state.products.map(productCard).join("") : `<p class="muted" style="grid-column:1/-1;text-align:center">❀ "${esc(q)}" को लागि कुनै product भेटिएन। "Birthday Frame" वा "Frame" खोज्नुहोस्।</p>`;
   } catch (e) { $("productGrid").innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center">Search load हुन सकेन। <button class="btn-ghost2" onclick="location.reload()">Retry</button></p>`; }
   sentinel("");
@@ -207,12 +239,12 @@ function productCard(p) {
       <strong class="p-name">${esc(p.name)}</strong>
       ${(p.sizeIds||[]).length ? `<div class="p-sizes">${p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); const pr = p.sizePrices && p.sizePrices[id]; return `<span class="p-size">${s ? esc(s.name) : ""}${pr != null ? " · " + fmtMoney(pr) : ""}</span>`; }).join("")}</div>` : ""}
       <div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span><a class="p-wa" href="${wa}" data-wa-msg="${esc(msg)}">Order</a></div>
-      <div class="p-extra"><a class="p-detail" href="/product/${p.slug||""}">View Details ›</a><button class="p-share" data-share="${p.slug||""}" aria-label="Share">${SHARE_SVG}</button></div>
+      <div class="p-extra"><a class="p-detail" href="/product/${p.slug||""}">View Details ›</a><button class="p-share" data-cart="${p.id}" aria-label="Add to cart">${BAG}</button><button class="p-share" data-share="${p.slug||""}" aria-label="Share">${SHARE_SVG}</button></div>
       ${p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : ""}
     </div>
   </article>`;
 }
-function renderHeroVisual() { const imgs = []; (state.gallery||[]).forEach(g => { const u = imgUrl(g.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); if (!imgs.length) (state.bootAll||state.products||[]).forEach(p => { const u = imgUrl(p.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); $("heroVisual").innerHTML = imgs.length ? `<span class="frame f1"><img src="${imgs[0]}" alt="" loading="eager" decoding="async"></span>${imgs[1] ? `<span class="frame f2"><img src="${imgs[1]}" alt="" loading="lazy" decoding="async"></span>` : ""}<span class="lens-deco"></span>` : `<span class="frame f1 motif"><i class="fl big">❀</i></span>`; }
+function renderHeroVisual() { const imgs = []; (state.gallery||[]).forEach(g => { const u = imgUrl(g.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); if (!imgs.length) (state.products||[]).forEach(p => { const u = imgUrl(p.imageUrl); if (u && imgs.length < 2) imgs.push(u); }); $("heroVisual").innerHTML = imgs.length ? `<span class="frame f1"><img src="${imgs[0]}" alt="" loading="eager" decoding="async"></span>${imgs[1] ? `<span class="frame f2"><img src="${imgs[1]}" alt="" loading="lazy" decoding="async"></span>` : ""}<span class="lens-deco"></span>` : `<span class="frame f1 motif"><i class="fl big">❀</i></span>`; }
 function syncPmFav() { const b = $("pmFav"); if (b && state.pmId) b.classList.toggle("on", state.favs.includes(state.pmId)); const pp = $("ppFav"); if (pp && state.pmId) pp.classList.toggle("on", state.favs.includes(state.pmId)); }
 
 function pushRecent(p) { try { let r = JSON.parse(localStorage.getItem("lgs_recent") || "[]"); r = r.filter(x => x.id !== p.id); r.unshift({ id: p.id, name: p.name, price: p.price, img: imgUrl(p.imageUrl), slug: p.slug }); r = r.slice(0, 8); localStorage.setItem("lgs_recent", JSON.stringify(r)); } catch {} }
@@ -221,8 +253,8 @@ function renderRecent() { try { const r = JSON.parse(localStorage.getItem("lgs_r
 async function renderRelated(p) {
   const el = $("ppRelated"); if (!el) return;
   if (!p || !p.id) { el.parentElement.hidden = true; return; }
-  let rel = (state.bootAll || state.products).filter(x => x.id !== p.id && x.categoryId === p.categoryId).slice(0, 4);
-  if (rel.length === 0 && db && p.categoryId && !state.bootAll) {
+  let rel = state.products.filter(x => x.id !== p.id && x.categoryId === p.categoryId).slice(0, 4);
+  if (rel.length === 0 && db && p.categoryId) {
     try {
       const snap = await db.collection("products").where("categoryId", "==", p.categoryId).where("isActive", "==", true).limit(5).get();
       rel = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.id !== p.id).slice(0, 4);
@@ -244,9 +276,8 @@ function renderStore() { const s = state.store || {}; const name = s.name || "La
 function showLanding() { hideRouteLoader(); $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
 
 async function findProductBySlug(slug) {
-  let p = (state.products.find(x => x.slug === slug)) || ((state.bootAll||[]).find(x => x.slug === slug));
+  let p = state.products.find(x => x.slug === slug);
   if (p) return p;
-
   try {
     const snap = await db.collection("products").where("slug", "==", slug).where("isActive", "==", true).limit(1).get();
     if (!snap.empty) { 
@@ -256,7 +287,6 @@ async function findProductBySlug(slug) {
       return p;
     }
   } catch (e) {}
-
   try {
     const allSnap = await db.collection("products").where("isActive", "==", true).limit(500).get();
     if (!allSnap.empty) {
@@ -278,7 +308,6 @@ async function findProductBySlug(slug) {
       if (p) return p;
     }
   } catch (e) { console.error("findProductBySlug fallback error:", e); }
-
   return null;
 }
 
@@ -287,6 +316,7 @@ async function showProductPage(slug) {
   if (!p) { showLanding(); return; }
   hideRouteLoader();
   $("landingMain").hidden = true; $("categoryView").hidden = true; $("productView").hidden = false;
+  state.pmId = p.id; state.pmSize = null;
   const img = imgUrl(p.imageUrl); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
   $("ppImg").src = img || ""; $("ppImg").alt = `${p.name} - Laligurans Photo Studio`;
   const cr = $("ppCrumb"); if (cr) cr.innerHTML = `<a href="/">Home</a> › <a href="/category/${cat ? catSlug(cat) : ""}">${cat ? esc(cat.name) : "Products"}</a> › <span>${esc(p.name)}</span>`;
@@ -298,10 +328,10 @@ async function showProductPage(slug) {
     const kw = document.createElement('div'); kw.id = 'ppKwHidden'; kw.style.cssText = 'position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none'; kw.setAttribute('aria-hidden', 'true'); kw.textContent = 'Related: ' + p.keywords.join(', ');
     const desc = $("ppDesc"); if (desc && desc.parentNode) desc.parentNode.insertBefore(kw, desc.nextSibling);
   }
-  $("ppSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(sizePriceFor(p, s))}</span></div>`; }).join("") : "";
+  $("ppSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES (tap to select)</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size" data-size="${id}" style="cursor:pointer"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(sizePriceFor(p, s))}</span></div>`; }).join("") : "";
   $("ppPrice").textContent = fmtMoney(p.price);
   $("ppAvail").innerHTML = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
-  state.pmId = p.id; syncPmFav();
+  syncPmFav();
   setWa($("ppWa"), productWaMsg(p));
   const url = location.origin + "/product/" + p.slug;
   setSeo({ title: `${p.name} | Laligurans Photo Studio`, desc: p.description || `${p.name} from Laligurans Photo Studio.`, image: img, url, type: "product" });
@@ -315,8 +345,8 @@ async function showCategoryPage(slug) {
   $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = false;
   const rs = $("relSec"); if (rs) rs.hidden = true;
   $("cvName").textContent = c.name; $("cvDesc").textContent = c.description || "";
-  let items = (state.bootAll || state.products).filter(p => p.categoryId === c.id);
-  if (items.length === 0 && db && !state.bootAll) {
+  let items = state.products.filter(p => p.categoryId === c.id);
+  if (items.length === 0 && db) {
     try {
       const snap = await db.collection("products").where("categoryId", "==", c.id).where("isActive", "==", true).limit(100).get();
       items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -332,7 +362,7 @@ function route() { const path = location.pathname; const m = path.match(/^\/prod
 
 function openShare(p) { state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` }; $("shareTitle").textContent = p.name; $("shNative").hidden = !navigator.share; $("shareModal").hidden = false; }
 function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; }
-function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("backdrop").hidden = true; }
+function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("cartDrawer").classList.remove("open"); $("backdrop").hidden = true; }
 
 function bindLive() {
   db.collection("categories").onSnapshot(s => { state.categories = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderDrawer(); renderChips(); renderCollections(); }, () => {});
@@ -341,7 +371,7 @@ function bindLive() {
   db.collection("announcements").onSnapshot(s => { state.announcements = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAnnouncements(); }, () => {});
   db.collection("storeInfo").doc("main").onSnapshot(s => { state.store = s.exists ? s.data() : null; renderStore(); }, () => {});
   db.collection("businessHours").doc("weekly").onSnapshot(s => { state.hours = s.exists ? s.data() : null; renderHours(); }, () => {});
-  db.collection("products").limit(1).onSnapshot(s => { if (!s.metadata.fromCache && state._loadedOnce && !location.pathname.startsWith("/product/")) { state.bootAll = null; state.pending = []; loadProductsPage(true); } state._loadedOnce = true; }, () => {});
+  db.collection("products").limit(1).onSnapshot(s => { if (!s.metadata.fromCache && state._loadedOnce && !location.pathname.startsWith("/product/")) { loadProductsPage(true); } state._loadedOnce = true; }, () => {});
 }
 
 function bootFromSSR() {
@@ -363,7 +393,6 @@ function bootFromSSR() {
 function init() {
   const rl = $("routeLoader");
   const isProductPath = location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/");
-
   const ssrPresent = isProductPath && $("ppName") && $("ppName").textContent && $("ppName").textContent.trim() !== "";
 
   if (isProductPath && !ssrPresent) {
@@ -384,29 +413,24 @@ function init() {
   }, 6000);
 
   loadFavs(); favCount();
+  loadCart(); cartCount();
   applyTheme(localStorage.getItem("lgs_theme") || "light", false);
   renderServices();
 
   if (bootFromSSR()) {
-    renderDrawer(); renderChips(); renderGallery(); renderAnnouncements(); renderStore(); renderHours();
-    if (state._ssr) {
-      state.bootAll = sortLikeGrid(state.products.slice());
-      state.products = [];
-      if (!isProductPath) {
-        state.pq = { last: null, done: true, loading: false };
-        state.pending = state.bootAll.slice();
-        renderPending(PAGE_SIZE);
-        pendingSentinel();
-      }
+    renderDrawer(); renderChips(); renderCollections(); renderGallery(); renderHeroVisual(); renderAnnouncements(); renderStore(); renderHours();
+    if (state._ssr && !location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) {
+      $("productGrid").innerHTML = state.products.filter(p => matchesFilters(p)).map(productCard).join("");
+      sentinel("");
     }
-    renderCollections(); renderHeroVisual();
   }
 
   updateNow(); setInterval(updateNow, 30000);
   window.addEventListener("scroll", () => { $("siteHead").classList.toggle("scrolled", window.scrollY > 8); }, { passive: true });
 
   document.addEventListener("click", e => { const a = e.target.closest("a.p-wa"); if (!a) return; e.preventDefault(); waOpen(a.dataset.waMsg || "", a.dataset.waDigits || ""); });
-  document.addEventListener("click", e => { const b = e.target.closest("[data-share]"); if (!b) return; e.stopPropagation(); const p = (state.products.find(x => x.slug === b.dataset.share)) || ((state.bootAll||[]).find(x => x.slug === b.dataset.share)); if (p) openShare(p); });
+  document.addEventListener("click", e => { const b = e.target.closest("[data-share]"); if (!b) return; e.stopPropagation(); const p = state.products.find(x => x.slug === b.dataset.share); if (p) openShare(p); });
+  document.addEventListener("click", e => { const b = e.target.closest("[data-cart]"); if (!b) return; addToCart(b.dataset.cart, null); });
   document.addEventListener("click", e => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = e.target.closest("a"); if (!a) return;
@@ -420,12 +444,16 @@ function init() {
 
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
+  $("cartToggle").addEventListener("click", () => { renderCart(); openDrawer("cartDrawer"); });
+  $("cartClose").addEventListener("click", closeDrawers);
+  $("cartList").addEventListener("click", e => { const q = e.target.closest("[data-cq]"); if (q) { cartChange(q.dataset.key, +q.dataset.cq); return; } const r = e.target.closest("[data-crm]"); if (r) cartRemove(r.dataset.crm); });
+  $("cartWa").addEventListener("click", () => { if (state.cart.length) waOpen(cartWaMsg()); });
   $("drawerClose").addEventListener("click", closeDrawers);
   $("favClose").addEventListener("click", closeDrawers);
   $("backdrop").addEventListener("click", closeDrawers);
   $("themeToggle").addEventListener("click", () => { const next = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark"; applyTheme(next); });
   $("searchToggle").addEventListener("click", () => { if ($("landingMain").hidden) { location.href = "/"; return; } const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus(); });
-  $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; if (!applyFilterInstant()) loadProductsPage(true); } else { await searchAll(q); } }, 300));
+  $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; loadProductsPage(true); } else { await searchAll(q); } }, 300));
 
   $("aboutBtn").addEventListener("click", () => { $("aboutModal").hidden = false; });
   $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
@@ -437,17 +465,21 @@ function init() {
 
   $("svcGrid").addEventListener("click", e => { const b = e.target.closest(".svc-card"); if (!b) return; document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b)); const s = SERVICES[+b.dataset.svc]; $("svcName").textContent = s.t; setWa($("svcWa"), `Namaste ${storeName()}! I would like to know more about: ${s.t}`); $("svcActions").hidden = false; });
 
-  $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; state.search = ""; $("searchInput").value = ""; renderChips(); renderDrawer(); state.searchMode = false; if (!applyFilterInstant()) loadProductsPage(true); });
-  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); if (!applyFilterInstant()) loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
-  $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); if (!applyFilterInstant()) loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
+  $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; state.search = ""; $("searchInput").value = ""; renderChips(); renderDrawer(); state.searchMode = false; loadProductsPage(true); });
+  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
+  $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
 
-  $("productGrid").addEventListener("click", e => { const f = e.target.closest("[data-fav]"); if (f) { toggleFav(f.dataset.fav); return; } if (e.target.closest("[data-share]")) return; if (e.target.closest("a")) return; const card = e.target.closest(".p-card"); if (card && card.dataset.id) { const p = (state.products.find(x => x.id === card.dataset.id)) || ((state.bootAll||[]).find(x => x.id === card.dataset.id)); if (p) openProductModal(p); } });
+  /* size select on product page */
+  $("ppSizes").addEventListener("click", e => { const b = e.target.closest("[data-size]"); if (!b) return; state.pmSize = state.pmSize === b.dataset.size ? null : b.dataset.size; Array.from($("ppSizes").querySelectorAll(".pm-size")).forEach(x => x.classList.toggle("sel", x.dataset.size === state.pmSize)); });
+  $("ppCart").addEventListener("click", () => { if (state.pmId) addToCart(state.pmId, state.pmSize || null); });
+
+  $("productGrid").addEventListener("click", e => { const f = e.target.closest("[data-fav]"); if (f) { toggleFav(f.dataset.fav); return; } if (e.target.closest("[data-share]")) return; if (e.target.closest("[data-cart]")) return; if (e.target.closest("a")) return; const card = e.target.closest(".p-card"); if (card && card.dataset.id) { const p = state.products.find(x => x.id === card.dataset.id); if (p) openProductModal(p); } });
   $("pmClose").addEventListener("click", () => { $("productModal").hidden = true; state.pmId = null; });
   $("pmFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
   $("productModal").addEventListener("click", e => { if (e.target === $("productModal")) { $("productModal").hidden = true; state.pmId = null; } });
   $("ppFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
-  $("ppShare").addEventListener("click", () => { const p = (state.products.find(x => x.id === state.pmId)) || ((state.bootAll||[]).find(x => x.id === state.pmId)); if (p) openShare(p); });
+  $("ppShare").addEventListener("click", () => { const p = state.products.find(x => x.id === state.pmId); if (p) openShare(p); });
   $("cvShare").addEventListener("click", () => { const slug = location.pathname.split("/").pop(); const c = (state.categories||[]).find(x => catSlug(x) === slug); if (!c) return; state.share = { url: location.origin + "/category/" + slug, title: `${c.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${c.name}\n\nView Collection:` }; $("shareTitle").textContent = c.name; $("shNative").hidden = !navigator.share; $("shareModal").hidden = false; });
 
   $("shareClose").addEventListener("click", () => { $("shareModal").hidden = true; });
@@ -481,10 +513,8 @@ function init() {
   db = firebase.firestore();
   bindLive();
   if (!state._ssr) loadProductsPage(true);
-  /* PRODUCT SHARING FIX: route() on load so direct/shared URLs open the exact product */
   route();
-  /* v12 infinite scroll: memory-first, then Firestore cursor */
-  if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) { if (state.pending.length) { renderPending(PAGE_SIZE); pendingSentinel(); } else if (!state.pq.done) { loadProductsPage(false); } } }, { rootMargin: "300px" }).observe(ss); }
+  if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
   setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
 }
 document.addEventListener("DOMContentLoaded", init);
