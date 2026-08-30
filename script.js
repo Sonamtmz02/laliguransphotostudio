@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v12 (cart + WA checkout + instant boot) */
+/* LALIGURANS USER PANEL - v13 (about/proprietor pages + cart + instant boot) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -99,7 +99,6 @@ async function renderFavs() {
   $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`;
 }
 
-/* ===== CART (100% free: localStorage + WhatsApp) ===== */
 function loadCart() { try { state.cart = JSON.parse(localStorage.getItem("lgs_cart") || "[]"); } catch { state.cart = []; } }
 function saveCart() { localStorage.setItem("lgs_cart", JSON.stringify(state.cart)); }
 function cartCount() { const el = $("cartCount"); if (!el) return; const n = state.cart.reduce((a,x)=>a+(x.qty||0),0); el.textContent = n; el.hidden = !n; }
@@ -160,7 +159,6 @@ function renderCart() {
   $("cartTotal").textContent = fmtMoney(L.total);
   if (w) w.hidden = false; if (t) t.hidden = false;
 }
-/* ===== END CART ===== */
 
 function ktParts() { return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); }
 function ktNow() { const g = t => ktParts().find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
@@ -271,7 +269,7 @@ async function renderRelated(p) {
   el.innerHTML = rel.map(productCard).join("");
 }
 
-function openProductModal(p) { state.pmId = p.id; const img = imgUrl(p.imageUrl); $("pmImgWrap").innerHTML = img ? `<img src="${img}" alt="${esc(p.name)}">` : `<div class="p-noimg">${CAM}</div>`; const cat = (state.categories||[]).find(x => x.id === p.categoryId); $("pmCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE"; $("pmName").textContent = p.name; $("pmDesc").textContent = p.description || ""; $("pmSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p, s)}</span></div>`; }).join("") : ""; $("pmPrice").textContent = fmtMoney(p.price); setWa($("pmWa"), productWaMsg(p)); $("pmAvail").innerHTML = (p.isAvailable === false ? `<span class="badge red">Currently unavailable</span> ` : "") + (p.isFeatured ? `<span class="badge gold">★ Featured</span>` : ""); syncPmFav(); $("productModal").hidden = false; }
+function openProductModal(p) { state.pmId = p.id; const img = imgUrl(p.imageUrl); $("pmImgWrap").innerHTML = img ? `<img src="${img}" alt="${esc(p.name)}">` : `<div class="p-noimg">${CAM}</div>`; const cat = (state.categories||[]).find(x => x.id === p.categoryId); $("pmCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE"; $("pmName").textContent = p.name; $("pmDesc").textContent = p.description || ""; $("pmSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES (tap to select)</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size" data-size="${id}" style="cursor:pointer"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p, s)}</span></div>`; }).join("") : ""; $("pmPrice").textContent = fmtMoney(p.price); setWa($("pmWa"), productWaMsg(p)); $("pmAvail").innerHTML = (p.isAvailable === false ? `<span class="badge red">Currently unavailable</span> ` : "") + (p.isFeatured ? `<span class="badge gold">★ Featured</span>` : ""); syncPmFav(); $("productModal").hidden = false; }
 function renderGallery() { const el = $("galleryGrid"); if (!state.gallery) { el.innerHTML = `<div class="g-item"><div class="sk-img" style="aspect-ratio:1"></div></div>`.repeat(4); return; } state.lbList = []; const html = state.gallery.map(g => { const img = imgUrl(g.imageUrl); if (!img) return ""; const idx = state.lbList.push({ img, title: g.title || "" }) - 1; return `<div class="g-item" data-idx="${idx}"><img src="${img}" alt="${esc(g.title||"gallery")}" loading="lazy" decoding="async"></div>`; }).join(""); el.innerHTML = html || `<p class="muted">❀ Gallery coming soon.</p>`; }
 function openLightbox(i) { state.lbIndex = i; const it = state.lbList[i]; if (!it) return; $("lightboxImg").src = it.img; $("lightboxImg").alt = it.title || "Gallery photo"; $("lightboxCount").textContent = `${i+1} / ${state.lbList.length}`; $("lightbox").hidden = false; }
 function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbIndex + d + state.lbList.length) % state.lbList.length; openLightbox(state.lbIndex); }
@@ -280,6 +278,7 @@ function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.h
 function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); } }
 
 function showLanding() { hideRouteLoader(); $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; $("aboutView").hidden = true; $("propView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
+
 async function findProductBySlug(slug) {
   let p = state.products.find(x => x.slug === slug);
   if (p) return p;
@@ -320,7 +319,7 @@ async function showProductPage(slug) {
   const p = await findProductBySlug(slug);
   if (!p) { showLanding(); return; }
   hideRouteLoader();
-  $("landingMain").hidden = true; $("categoryView").hidden = true; $("productView").hidden = false;
+  $("landingMain").hidden = true; $("categoryView").hidden = true; $("productView").hidden = false; $("aboutView").hidden = true; $("propView").hidden = true;
   state.pmId = p.id; state.pmSize = null;
   const img = imgUrl(p.imageUrl); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
   $("ppImg").src = img || ""; $("ppImg").alt = `${p.name} - Laligurans Photo Studio`; $("ppImg").setAttribute("fetchpriority", "high");
@@ -347,7 +346,7 @@ async function showCategoryPage(slug) {
   const c = (state.categories||[]).find(x => catSlug(x) === slug);
   if (!c) { showLanding(); return; }
   hideRouteLoader();
-  $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = false;
+  $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = false; $("aboutView").hidden = true; $("propView").hidden = true;
   const rs = $("relSec"); if (rs) rs.hidden = true;
   $("cvName").textContent = c.name; $("cvDesc").textContent = c.description || "";
   let items = state.products.filter(p => p.categoryId === c.id);
@@ -363,7 +362,12 @@ async function showCategoryPage(slug) {
   setSeo({ title: `${c.name} | Laligurans Photo Studio`, desc: c.description || `Explore ${c.name} from Laligurans Photo Studio.`, image: "", url });
   window.scrollTo(0,0);
 }
-function route() { const path = location.pathname; const m = path.match(/^\/product\/([^\/]+)\/?$/); const c = path.match(/^\/category\/([^\/]+)\/?$/); if (m) showProductPage(decodeURIComponent(m[1])); else if (c) showCategoryPage(decodeURIComponent(c[1])); else showLanding(); }
+
+/* ===== ABOUT + PROPRIETOR PAGES ===== */
+function showAboutPage() { hideRouteLoader(); $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = true; $("propView").hidden = true; $("aboutView").hidden = false; setSeo({ title: `About Us | ${storeName()}`, desc: "करिब ३० वर्षदेखि स्थानीय ग्राहकको विश्वाससँग जोडिएको यात्रा।", image: location.origin + "/logo.png", url: location.origin + "/about" }); window.scrollTo(0,0); }
+function showPropPage() { hideRouteLoader(); $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = true; $("aboutView").hidden = true; $("propView").hidden = false; setSeo({ title: `Proprietor | ${storeName()}`, desc: "सूर्यलाल श्रेष्ठ — प्रोप्राइटर, Laligurans Photo Studio।", image: location.origin + "/proprietor.png", url: location.origin + "/proprietor" }); window.scrollTo(0,0); }
+
+function route() { const path = location.pathname; const m = path.match(/^\/product\/([^\/]+)\/?$/); const c = path.match(/^\/category\/([^\/]+)\/?$/); if (m) showProductPage(decodeURIComponent(m[1])); else if (c) showCategoryPage(decodeURIComponent(c[1])); else if (path === "/about" || path === "/about/") showAboutPage(); else if (path === "/proprietor" || path === "/proprietor/") showPropPage(); else showLanding(); }
 
 function openShare(p) { state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` }; $("shareTitle").textContent = p.name; $("shNative").hidden = !navigator.share; $("shareModal").hidden = false; }
 function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; }
@@ -398,14 +402,17 @@ function bootFromSSR() {
 function init() {
   const rl = $("routeLoader");
   const isProductPath = location.pathname.startsWith("/product/") || location.pathname.startsWith("/category/");
-  const ssrPresent = isProductPath && $("ppName") && $("ppName").textContent && $("ppName").textContent.trim() !== "";
+  const isInfoPath = location.pathname.startsWith("/about") || location.pathname.startsWith("/proprietor");
+  const ssrPresent = (isProductPath && $("ppName") && $("ppName").textContent && $("ppName").textContent.trim() !== "") || isInfoPath;
 
-  if (isProductPath && !ssrPresent) {
+  if ((isProductPath || isInfoPath) && !ssrPresent) {
     $("landingMain").hidden = true;
     if (rl) rl.hidden = false;
   } else if (ssrPresent) {
     $("landingMain").hidden = true;
-    $("productView").hidden = false;
+    if (isProductPath) $("productView").hidden = false;
+    if (location.pathname.startsWith("/about")) $("aboutView").hidden = false;
+    if (location.pathname.startsWith("/proprietor")) $("propView").hidden = false;
     hideRouteLoader();
   }
 
@@ -413,7 +420,7 @@ function init() {
     const l = $("routeLoader");
     if (l && !l.hidden) {
       l.hidden = true;
-      if (!location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) { $("landingMain").hidden = false; }
+      if (!isProductPath && !isInfoPath) { $("landingMain").hidden = false; }
     }
   }, 6000);
 
@@ -424,7 +431,7 @@ function init() {
 
   if (bootFromSSR()) {
     renderDrawer(); renderChips(); renderCollections(); renderGallery(); renderHeroVisual(); renderAnnouncements(); renderStore(); renderHours();
-    if (state._ssr && !location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/")) {
+    if (state._ssr && !isProductPath && !isInfoPath) {
       $("productGrid").innerHTML = state.products.filter(p => matchesFilters(p)).map(productCard).join("");
       sentinel("");
     }
@@ -443,7 +450,7 @@ function init() {
     let url; try { url = new URL(href, location.origin); } catch { return; }
     if (url.origin !== location.origin) return;
     const p = url.pathname;
-    if (p.startsWith("/product/") || p.startsWith("/category/") || p === "/") { e.preventDefault(); history.pushState({}, "", p + (url.hash || "")); route(); if (url.hash) { const el = document.querySelector(url.hash); if (el) el.scrollIntoView({ behavior: "smooth" }); } }
+    if (p.startsWith("/product/") || p.startsWith("/category/") || p === "/" || p === "/about" || p === "/proprietor") { e.preventDefault(); history.pushState({}, "", p + (url.hash || "")); route(); if (url.hash) { const el = document.querySelector(url.hash); if (el) el.scrollIntoView({ behavior: "smooth" }); } }
   });
   window.addEventListener("popstate", () => route());
 
@@ -460,10 +467,8 @@ function init() {
   $("searchToggle").addEventListener("click", () => { if ($("landingMain").hidden) { location.href = "/"; return; } const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus(); });
   $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; loadProductsPage(true); } else { await searchAll(q); } }, 300));
 
-  $("aboutBtn").addEventListener("click", () => { $("aboutModal").hidden = false; });
   $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
   $("aboutModal").addEventListener("click", e => { if (e.target === $("aboutModal")) $("aboutModal").hidden = true; });
-  $("propCard").addEventListener("click", () => { $("propModal").hidden = false; });
   $("propClose").addEventListener("click", () => { $("propModal").hidden = true; });
   $("propModal").addEventListener("click", e => { if (e.target === $("propModal")) $("propModal").hidden = true; });
   $("propWa").addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! (Laligurans Photo Studio website बाट)`, PROP.waDigits); });
@@ -475,7 +480,6 @@ function init() {
   $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
 
-  /* size select on product page */
   $("ppSizes").addEventListener("click", e => { const b = e.target.closest("[data-size]"); if (!b) return; state.pmSize = state.pmSize === b.dataset.size ? null : b.dataset.size; Array.from($("ppSizes").querySelectorAll(".pm-size")).forEach(x => x.classList.toggle("sel", x.dataset.size === state.pmSize)); });
   $("ppCart").addEventListener("click", () => { if (state.pmId) addToCart(state.pmId, state.pmSize || null); });
 
