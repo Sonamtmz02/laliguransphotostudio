@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v11 - SSR product body + edge-cached home boot data */
+/* LALIGURANS edge router v13 - SSR product body + edge-cached home boot + perf polish */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -8,6 +8,7 @@ function esc(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt
 function escAttr(s){return esc(s).replaceAll("'","&#39;");}
 function slugify(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[\u0900-\u097F]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"item";}
 function fmtMoney(n){return "रु. " + Number(n||0).toLocaleString();}
+function sizePriceText(p,s){const v=(p.sizePrices&&p.sizePrices[s.id]!=null)?p.sizePrices[s.id]:(s.price!=null?s.price:0);return v?("रु. "+Number(v).toLocaleString()):"";}
 function dv(v){if(v==null)return null;if(v.stringValue!==undefined)return v.stringValue;if(v.integerValue!==undefined)return Number(v.integerValue);if(v.numberValue!==undefined)return Number(v.numberValue);if(v.booleanValue!==undefined)return v.booleanValue;if(v.timestampValue!==undefined)return v.timestampValue;if(v.arrayValue)return(v.arrayValue.values||[]).map(dv);if(v.mapValue)return df(v.mapValue.fields||{});return null;}
 function df(f){const o={};for(const k in f)o[k]=dv(f[k]);return o;}
 async function fetchDocs(pid,key,coll){let out=[],token="";do{const u=`https://firestore.googleapis.com/v1/projects/${pid}/databases/(default)/documents/${coll}?pageSize=300${token?"&pageToken="+token:""}&key=${key}`;const r=await fetch(u);if(!r.ok)throw new Error("firestore "+r.status);const j=await r.json();for(const d of(j.documents||[])){const o=df(d.fields||{});o.id=d.name.split("/").pop();if(o.createdAt)o.createdAtMs=Date.parse(o.createdAt)||0;out.push(o);}token=j.nextPageToken||"";}while(token);return out;}
@@ -44,7 +45,7 @@ async function handleSitemap(request){
   return new Response(xml,{headers:{"content-type":"application/xml","cache-control":"public, max-age=300","x-sitemap-debug":debug}});
 }
 
-/* ===== NEW v11: HOME BOOT DATA (edge-cached) ===== */
+/* ===== HOME BOOT DATA (edge-cached) + hero image preload ===== */
 async function handleHome(request,env){
   const origin=new URL(request.url).origin;
   const shell=await shellHtml(env,request);
@@ -68,6 +69,9 @@ async function handleHome(request,env){
       hours:hours||null
     };
     let html=shell;
+    /* PERF: hero/LCP image preload */
+    const heroImg=(payload.gallery[0]&&payload.gallery[0].imageUrl)||(payload.products[0]&&payload.products[0].imageUrl)||"";
+    if(heroImg)html=html.replace("</head>",`<link rel="preload" as="image" href="${escAttr(heroImg)}" fetchpriority="high">\n</head>`);
     const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
     html=html.replace("</body>",boot);
     return new Response(html,{headers:{"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=60, stale-while-revalidate=300","x-boot":"ok"}});
@@ -89,8 +93,7 @@ function buildProductBody(p,cat,img,origin){
   const sizes = (p.sizeIds || []).map(id => {
     const s = (p._sizes || []).find(x => x.id === id);
     if (!s) return "";
-    const pr = p.sizePrices && p.sizePrices[id] != null ? p.sizePrices[id] : (s.price || 0);
-    return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(pr)}</span></div>`;
+    return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p,s)}</span></div>`;
   }).filter(Boolean).join("");
   const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
   const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
@@ -99,7 +102,7 @@ function buildProductBody(p,cat,img,origin){
   return `<div class="wrap">
     <a href="/" class="pp-back">‹ Back to Home</a>
     <div class="pp-grid">
-      <div class="pp-media">${img ? `<img id="ppImg" src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" />` : `<img id="ppImg" alt="" />`}</div>
+      <div class="pp-media">${img ? `<img id="ppImg" src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" fetchpriority="high" />` : `<img id="ppImg" alt="" />`}</div>
       <div class="pp-info">
         <p class="p-cat" id="ppCat">${catName}</p>
         <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/category/${escAttr(catSlug)}">${catLabel}</a> › <span>${name}</span></nav>
