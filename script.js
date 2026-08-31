@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v13 (cart + boot + info pages + all fixes) */
+/* LALIGURANS USER PANEL - v13.1 (cart + boot + info pages + all fixes + shortName) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -233,6 +233,13 @@ async function searchAll(q) {
 }
 function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
 function sizePriceText(p, s) { const v = (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price != null ? s.price : 0); return v ? fmtMoney(v) : ""; }
+
+/* ===== NEW v13.1: shortName helper — "Lali Guarans Digital Photo Studio" बाट "Photo Studio" काट्छ ===== */
+function shortName(n) {
+  const t = (n || "").trim();
+  return t.toLowerCase().endsWith("photo studio") ? (t.slice(0, -12).trim() || t) : (t.split(" ")[0] || t);
+}
+
 function productCard(p) {
   const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHrefMsg(msg, waNumber()); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
   return `<article class="p-card" data-id="${p.id}">
@@ -277,7 +284,50 @@ function openLightbox(i) { state.lbIndex = i; const it = state.lbList[i]; if (!i
 function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbIndex + d + state.lbList.length) % state.lbList.length; openLightbox(state.lbIndex); }
 function renderHours() { const now = ktNow(); const days = (state.hours && state.hours.days) || {}; $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join(""); refreshBadge(); }
 function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.href = href; el.hidden = false; } else el.hidden = true; }
-function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); } }
+
+/* ===== renderStore with shortName fix (v13.1) ===== */
+function renderStore() {
+  const s = state.store || {};
+  const name = s.name || "Laligurans Photo Studio";
+  const tag = s.tagline || DEFAULT_TAG;
+  const parts = String(tag).split(",").map(x => x.trim());
+
+  /* shortName: "Lali Guarans Digital Photo Studio" → "Lali Guarans Digital" */
+  $("brandName").textContent = shortName(name);
+  $("drawerName").textContent = shortName(name);
+
+  $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`;
+  $("tagLine1").textContent = parts[0] || tag;
+  $("tagLine2").textContent = parts[1] || "";
+  $("heroSub").textContent = s.about || "Premium photography, prints and frames.";
+  $("greetBadge").textContent = greeting();
+  $("dPhone").textContent = CONTACT.callDisplay;
+  $("dCall").href = CONTACT.callTel;
+  $("dWaPhone").textContent = CONTACT.waDisplay;
+  setWa($("dWa"), generalWaMsg());
+  setLink("cMap", safeUrl(s.mapUrl));
+
+  $("footName").textContent = shortName(name);
+
+  $("footTag").textContent = tag;
+  $("footAddr").textContent = s.address || "";
+  $("footPhone").href = CONTACT.callTel;
+  $("footPhone").textContent = CONTACT.callDisplay;
+  setWa($("footWa"), generalWaMsg());
+  $("footMail").href = "mailto:" + CONTACT.email;
+  $("footMail").textContent = CONTACT.email;
+  setLink("sFb", safeUrl(s.facebook));
+  setLink("sIg", safeUrl(s.instagram));
+  setLink("sTk", safeUrl(s.tiktok));
+  $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`;
+  const mq = s.address || name;
+  if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; }
+  if (location.pathname === "/" || location.pathname === "") {
+    const homeUrl = location.origin + "/";
+    setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl });
+    setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
+  }
+}
 
 function showLanding() { hideRouteLoader(); $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; $("aboutView").hidden = true; $("propView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
 
