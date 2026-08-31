@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v13 (about/proprietor pages + cart + instant boot) */
+/* LALIGURANS USER PANEL - v13 (text categories + drawer accordion + all fixes) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -99,6 +99,7 @@ async function renderFavs() {
   $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`;
 }
 
+/* ===== CART (free: localStorage + WhatsApp) ===== */
 function loadCart() { try { state.cart = JSON.parse(localStorage.getItem("lgs_cart") || "[]"); } catch { state.cart = []; } }
 function saveCart() { localStorage.setItem("lgs_cart", JSON.stringify(state.cart)); }
 function cartCount() { const el = $("cartCount"); if (!el) return; const n = state.cart.reduce((a,x)=>a+(x.qty||0),0); el.textContent = n; el.hidden = !n; }
@@ -159,6 +160,7 @@ function renderCart() {
   $("cartTotal").textContent = fmtMoney(L.total);
   if (w) w.hidden = false; if (t) t.hidden = false;
 }
+/* ===== END CART ===== */
 
 function ktParts() { return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); }
 function ktNow() { const g = t => ktParts().find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
@@ -172,32 +174,35 @@ const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.
 function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el => io ? io.observe(el) : el.classList.add("in")); }
 
 function renderAnnouncements() { const now = Date.now(); const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2)); const bar = $("annBar"); if (!act.length) { bar.hidden = true; return; } bar.hidden = false; bar.innerHTML = act.map(a => esc(a.message)).join("  ·  "); }
+
+/* ===== DRAWER: collections accordion + contact + social ===== */
 function renderDrawer() {
   const cats = state.categories || [];
-  $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>` + cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join("");
+  $("drawerCats").innerHTML = `<button class="d-cat ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All Products</button>`;
+  const more = $("drawerCatsMore");
+  if (more) more.innerHTML = cats.map(c => `<button class="d-cat ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join("");
 
-  /* Contact section: store info (phone/email/address/map) */
   const s = state.store || {};
-  const dCall = $("dCall"); const dPhone = $("dPhone"); const dMail = $("dMail"); const dEmail = $("dEmail"); const dMap = $("dMap"); const dAddr = $("dAddr");
+  const dPhone = $("dPhone"); const dCall = $("dCall"); const dMail = $("dMail"); const dEmail = $("dEmail"); const dMap = $("dMap"); const dAddr = $("dAddr");
   if (dPhone) dPhone.textContent = CONTACT.callDisplay;
   if (dCall) dCall.href = CONTACT.callTel;
   if (dEmail) dEmail.textContent = CONTACT.email;
   if (dMail) dMail.href = "mailto:" + CONTACT.email;
-  if (s.address) { if (dAddr) dAddr.textContent = s.address; if (dMap) dMap.hidden = false; if (dMap && s.mapUrl) dMap.href = s.mapUrl; else if (dMap) dMap.href = "https://www.google.com/maps?q=" + encodeURIComponent(s.address || "Chautara, Nepal"); }
-  if (s && s.mapUrl && dMap) { dMap.href = s.mapUrl; dMap.hidden = false; }
+  if (s.address) { if (dAddr) dAddr.textContent = s.address; if (dMap) { dMap.hidden = false; dMap.href = safeUrl(s.mapUrl) || ("https://www.google.com/maps?q=" + encodeURIComponent(s.address || "Chautara, Nepal")); } }
 
-  /* Social icons (real brand SVGs) */
   const fb = safeUrl(s.facebook); const ig = safeUrl(s.instagram); const tk = safeUrl(s.tiktok);
   const socials = [];
   if (fb) socials.push({ href: fb, label: "Facebook", cls: "fb", svg: `<svg class="ic" viewBox="0 0 24 24"><path fill="#1877F2" d="M22 12a10 10 0 1 0-11.6 9.9v-7H8v-2.9h2.4V9.8c0-2.4 1.4-3.7 3.6-3.7 1 0 2.1.2 2.1.2v2.3h-1.2c-1.2 0-1.5.7-1.5 1.5v1.8h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12z"/></svg>` });
   if (ig) socials.push({ href: ig, label: "Instagram", cls: "ig", svg: `<svg class="ic" viewBox="0 0 24 24"><defs><linearGradient id="igG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f58529"/><stop offset="50%" stop-color="#dd2a7b"/><stop offset="100%" stop-color="#8134af"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="5" fill="url(#igG)"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="#fff"/></svg>` });
   if (tk) socials.push({ href: tk, label: "TikTok", cls: "tk", svg: `<svg class="ic" viewBox="0 0 24 24"><path fill="#25F4EE" d="M16.6 5.8A4.8 4.8 0 0 1 15.4 3h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.8a5.7 5.7 0 1 0 5 5.7V9.9a7.8 7.8 0 0 0 4.4 1.4v-3a4.8 4.8 0 0 1-3.4-2.5z" transform="translate(-1 0)"/><path fill="#FE2C55" d="M16.6 5.8A4.8 4.8 0 0 1 15.4 3h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.8a5.7 5.7 0 1 0 5 5.7V9.9a7.8 7.8 0 0 0 4.4 1.4v-3a4.8 4.8 0 0 1-3.4-2.5z" transform="translate(1 0)"/><path fill="#010101" d="M16.6 5.8A4.8 4.8 0 0 1 15.4 3h-3v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.8a5.7 5.7 0 1 0 5 5.7V9.9a7.8 7.8 0 0 0 4.4 1.4v-3a4.8 4.8 0 0 1-3.4-2.5z"/></svg>` });
-  $("drawerSocial").innerHTML = socials.length ? socials.map(x => `<a class="ds-icon ${x.cls}" href="${x.href}" target="_blank" rel="noopener" aria-label="${x.label}">${x.svg}</a>`).join("") : `<p class="muted" style="font-size:.8rem;padding:0 .4rem">Social links छिट्टै आउँदै छन्।</p>`;
+  const ds = $("drawerSocial");
+  if (ds) ds.innerHTML = socials.length ? socials.map(x => `<a class="ds-icon ${x.cls}" href="${x.href}" target="_blank" rel="noopener" aria-label="${x.label}">${x.svg}</a>`).join("") : `<p class="muted" style="font-size:.8rem;padding:0 .4rem">Social links छिट्टै आउँदै छन्।</p>`;
 }
+
+/* ===== CHANGE 1: text-only category chips (fast) ===== */
 function renderCollections() {
   const el = $("colGrid"); const cats = state.categories; if (!cats) { el.innerHTML = ""; return; }
-  const firstImg = imgUrl(((state.products||[]).find(p => p.imageUrl) || {}).imageUrl);
-  el.innerHTML = `<button class="col-card col-all" data-col="all">${firstImg ? `<img src="${firstImg}" alt="All Products" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">All Products ❀</span></button>` + cats.map(c => { const img = imgUrl(((state.products||[]).find(p => p.categoryId === c.id && p.imageUrl) || {}).imageUrl); return `<button class="col-card" data-col="${c.id}">${img ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy" decoding="async">` : `<span class="col-motif">❀</span>`}<span class="col-name">${esc(c.name)}</span></button>`; }).join("");
+  el.innerHTML = `<button class="col-chip col-all" data-col="all">❀ All Products</button>` + cats.map(c => `<button class="col-chip" data-col="${c.id}">${esc(c.name)}</button>`).join("");
 }
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
@@ -294,7 +299,7 @@ async function renderRelated(p) {
   el.innerHTML = rel.map(productCard).join("");
 }
 
-function openProductModal(p) { state.pmId = p.id; const img = imgUrl(p.imageUrl); $("pmImgWrap").innerHTML = img ? `<img src="${img}" alt="${esc(p.name)}">` : `<div class="p-noimg">${CAM}</div>`; const cat = (state.categories||[]).find(x => x.id === p.categoryId); $("pmCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE"; $("pmName").textContent = p.name; $("pmDesc").textContent = p.description || ""; $("pmSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES (tap to select)</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size" data-size="${id}" style="cursor:pointer"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p, s)}</span></div>`; }).join("") : ""; $("pmPrice").textContent = fmtMoney(p.price); setWa($("pmWa"), productWaMsg(p)); $("pmAvail").innerHTML = (p.isAvailable === false ? `<span class="badge red">Currently unavailable</span> ` : "") + (p.isFeatured ? `<span class="badge gold">★ Featured</span>` : ""); syncPmFav(); $("productModal").hidden = false; }
+function openProductModal(p) { state.pmId = p.id; const img = imgUrl(p.imageUrl); $("pmImgWrap").innerHTML = img ? `<img src="${img}" alt="${esc(p.name)}">` : `<div class="p-noimg">${CAM}</div>`; const cat = (state.categories||[]).find(x => x.id === p.categoryId); $("pmCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE"; $("pmName").textContent = p.name; $("pmDesc").textContent = p.description || ""; $("pmSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${fmtMoney(sizePriceFor(p, s))}</span></div>`; }).join("") : ""; $("pmPrice").textContent = fmtMoney(p.price); setWa($("pmWa"), productWaMsg(p)); $("pmAvail").innerHTML = (p.isAvailable === false ? `<span class="badge red">Currently unavailable</span> ` : "") + (p.isFeatured ? `<span class="badge gold">★ Featured</span>` : ""); syncPmFav(); $("productModal").hidden = false; }
 function renderGallery() { const el = $("galleryGrid"); if (!state.gallery) { el.innerHTML = `<div class="g-item"><div class="sk-img" style="aspect-ratio:1"></div></div>`.repeat(4); return; } state.lbList = []; const html = state.gallery.map(g => { const img = imgUrl(g.imageUrl); if (!img) return ""; const idx = state.lbList.push({ img, title: g.title || "" }) - 1; return `<div class="g-item" data-idx="${idx}"><img src="${img}" alt="${esc(g.title||"gallery")}" loading="lazy" decoding="async"></div>`; }).join(""); el.innerHTML = html || `<p class="muted">❀ Gallery coming soon.</p>`; }
 function openLightbox(i) { state.lbIndex = i; const it = state.lbList[i]; if (!it) return; $("lightboxImg").src = it.img; $("lightboxImg").alt = it.title || "Gallery photo"; $("lightboxCount").textContent = `${i+1} / ${state.lbList.length}`; $("lightbox").hidden = false; }
 function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbIndex + d + state.lbList.length) % state.lbList.length; openLightbox(state.lbIndex); }
@@ -387,22 +392,20 @@ async function showCategoryPage(slug) {
   setSeo({ title: `${c.name} | Laligurans Photo Studio`, desc: c.description || `Explore ${c.name} from Laligurans Photo Studio.`, image: "", url });
   window.scrollTo(0,0);
 }
-
-/* ===== ABOUT + PROPRIETOR PAGES ===== */
 function showAboutPage() { hideRouteLoader(); $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = true; $("propView").hidden = true; $("aboutView").hidden = false; setSeo({ title: `About Us | ${storeName()}`, desc: "करिब ३० वर्षदेखि स्थानीय ग्राहकको विश्वाससँग जोडिएको यात्रा।", image: location.origin + "/logo.png", url: location.origin + "/about" }); window.scrollTo(0,0); }
 function showPropPage() { hideRouteLoader(); $("landingMain").hidden = true; $("productView").hidden = true; $("categoryView").hidden = true; $("aboutView").hidden = true; $("propView").hidden = false; setSeo({ title: `Proprietor | ${storeName()}`, desc: "सूर्यलाल श्रेष्ठ — प्रोप्राइटर, Laligurans Photo Studio।", image: location.origin + "/proprietor.png", url: location.origin + "/proprietor" }); window.scrollTo(0,0); }
-
 function route() { const path = location.pathname; const m = path.match(/^\/product\/([^\/]+)\/?$/); const c = path.match(/^\/category\/([^\/]+)\/?$/); if (m) showProductPage(decodeURIComponent(m[1])); else if (c) showCategoryPage(decodeURIComponent(c[1])); else if (path === "/about" || path === "/about/") showAboutPage(); else if (path === "/proprietor" || path === "/proprietor/") showPropPage(); else showLanding(); }
 
 function openShare(p) { state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` }; $("shareTitle").textContent = p.name; $("shNative").hidden = !navigator.share; $("shareModal").hidden = false; }
 function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; document.body.style.overflow = "hidden"; if (id === "drawer") document.body.classList.add("menu-open"); }
 function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("cartDrawer").classList.remove("open"); $("backdrop").hidden = true; document.body.style.overflow = ""; document.body.classList.remove("menu-open"); }
+
 function bindLive() {
   db.collection("categories").onSnapshot(s => { state.categories = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); renderDrawer(); renderChips(); renderCollections(); }, () => {});
   db.collection("sizes").onSnapshot(s => { state.sizes = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => x.isActive).sort((a,b) => (a.displayOrder??0)-(b.displayOrder??0)); }, () => {});
   db.collection("gallery").onSnapshot(s => { state.gallery = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(g => g.published).sort((a,b) => (b.createdAt?.toMillis?.()||0) - (a.createdAt?.toMillis?.()||0)); renderGallery(); renderHeroVisual(); }, () => {});
   db.collection("announcements").onSnapshot(s => { state.announcements = s.docs.map(d => ({ id: d.id, ...d.data() })); renderAnnouncements(); }, () => {});
-  db.collection("storeInfo").doc("main").onSnapshot(s => { state.store = s.exists ? s.data() : null; renderStore(); }, () => {});
+  db.collection("storeInfo").doc("main").onSnapshot(s => { state.store = s.exists ? s.data() : null; renderStore(); renderDrawer(); }, () => {});
   db.collection("businessHours").doc("weekly").onSnapshot(s => { state.hours = s.exists ? s.data() : null; renderHours(); }, () => {});
   db.collection("products").limit(1).onSnapshot(s => { if (!s.metadata.fromCache && state._loadedOnce && !location.pathname.startsWith("/product/")) { loadProductsPage(true); } state._loadedOnce = true; }, () => {});
 }
@@ -444,7 +447,7 @@ function init() {
     const l = $("routeLoader");
     if (l && !l.hidden) {
       l.hidden = true;
-      if (!isProductPath && !isInfoPath) { $("landingMain").hidden = false; }
+      if (!location.pathname.startsWith("/product/") && !location.pathname.startsWith("/category/") && !location.pathname.startsWith("/about") && !location.pathname.startsWith("/proprietor")) { $("landingMain").hidden = false; }
     }
   }, 6000);
 
@@ -478,8 +481,10 @@ function init() {
   });
   window.addEventListener("popstate", () => route());
 
-  $("navToggle").addEventListener("click", () => openDrawer("drawer")); 
+  $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("drawer").addEventListener("click", e => { if (e.target.closest("a,button")) setTimeout(closeDrawers, 60); });
+  const dct = $("drawerCatsToggle");
+  if (dct) dct.addEventListener("click", () => { const m = $("drawerCatsMore"); if (!m) return; const closed = m.classList.toggle("closed"); dct.classList.toggle("open", !closed); dct.setAttribute("aria-expanded", closed ? "false" : "true"); });
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
   $("cartToggle").addEventListener("click", () => { renderCart(); openDrawer("cartDrawer"); });
   $("cartClose").addEventListener("click", closeDrawers);
@@ -501,8 +506,10 @@ function init() {
   $("svcGrid").addEventListener("click", e => { const b = e.target.closest(".svc-card"); if (!b) return; document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b)); const s = SERVICES[+b.dataset.svc]; $("svcName").textContent = s.t; setWa($("svcWa"), `Namaste ${storeName()}! I would like to know more about: ${s.t}`); $("svcActions").hidden = false; });
 
   $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; state.search = ""; $("searchInput").value = ""; renderChips(); renderDrawer(); state.searchMode = false; loadProductsPage(true); });
-  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
+  /* CHANGE 2: col-chip handler */
+  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-chip"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
+  $("drawerCatsMore").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
 
   $("ppSizes").addEventListener("click", e => { const b = e.target.closest("[data-size]"); if (!b) return; state.pmSize = state.pmSize === b.dataset.size ? null : b.dataset.size; Array.from($("ppSizes").querySelectorAll(".pm-size")).forEach(x => x.classList.toggle("sel", x.dataset.size === state.pmSize)); });
@@ -547,6 +554,7 @@ function init() {
   db = firebase.firestore();
   bindLive();
   if (!state._ssr) loadProductsPage(true);
+  /* PRODUCT SHARING FIX: route() on load so direct/shared URLs open the exact product */
   route();
   if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
   setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
