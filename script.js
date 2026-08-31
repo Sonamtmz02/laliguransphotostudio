@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v13 (cart + boot + info pages + all fixes) */
+/* LALIGURANS USER PANEL - v14 (cart + boot + info pages + Phase B admin customization) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -41,7 +41,7 @@ const SUN = `<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/>
 const MOON = `<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
 const SHARE_SVG = `<svg class="ic" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg>`;
 const BAG = `<svg class="ic" viewBox="0 0 24 24"><path d="M6 7h12l1 14H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>`;
-const state = { store: null, categories: null, products: [], sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], cart: [], mapQ: "", theme: "light", pmId: null, pmSize: null, lbList: [], lbIndex: 0, share: null, pq: { last: null, done: false, loading: false }, searchMode: false };
+const state = { store: null, categories: null, products: [], sizes: null, gallery: null, announcements: [], hours: null, catFilter: "all", search: "", favs: [], cart: [], mapQ: "", theme: "light", pmId: null, pmSize: null, lbList: [], lbIndex: 0, share: null, pq: { last: null, done: false, loading: false }, searchMode: false, waOverride: "" };
 let db = null;
 
 function $(id) { return document.getElementById(id); }
@@ -71,7 +71,9 @@ function assignSlugsInPlace(list) {
 function setSeo(o) { document.title = o.title; const set = (sel,at,v) => { const el = document.querySelector(sel); if (el) el.setAttribute(at,v); }; set("#metaDesc","content",o.desc); set("#ogTitle","content",o.title); set("#ogDesc","content",o.desc); if (o.image) set("#ogImage","content",o.image); set("#ogType","content",o.type||"website"); set("#ogUrl","content",o.url); set("#canonical","href",o.url); set('meta[name="twitter:card"]',"content",o.image?"summary_large_image":"summary"); set('meta[name="twitter:title"]',"content",o.title); set('meta[name="twitter:description"]',"content",o.desc); if (o.image) set('meta[name="twitter:image"]',"content",o.image); }
 function setJsonLd(obj) { const el = $("jsonld"); if (el) el.textContent = JSON.stringify(obj); }
 
-function waNumber() { return CONTACT.waDigits; }
+function waNumber() { return state.waOverride || CONTACT.waDigits; }
+function propWaDigits() { const d = ((state.store && state.store.proprietorPhone) || "").replace(/\D/g, ""); return d || PROP.waDigits; }
+function propName() { return (state.store && state.store.proprietorName) || PROP.name; }
 function waHrefMsg(msg, digits) { return "https://wa.me/" + digits + "?text=" + encodeURIComponent(msg); }
 function waOpen(msg, digits) { const phone = digits || waNumber(); const enc = encodeURIComponent(msg); const web = "https://wa.me/" + phone + "?text=" + enc; const ua = navigator.userAgent || ""; if (/android/i.test(ua)) { window.location.href = "intent://wa.me/" + phone + "?text=" + enc + "#Intent;scheme=https;package=com.whatsapp;S.browser_fallback_url=" + encodeURIComponent(web) + ";end"; } else if (/iphone|ipad|ipod/i.test(ua)) { window.location.href = web; } else { window.open(web, "_blank", "noopener"); } }
 function setWa(el, msg, digits) { if (!el) return; el.href = waHrefMsg(msg, digits || waNumber()); el.dataset.waMsg = msg; if (digits) el.dataset.waDigits = digits; el.hidden = false; }
@@ -277,7 +279,23 @@ function openLightbox(i) { state.lbIndex = i; const it = state.lbList[i]; if (!i
 function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbIndex + d + state.lbList.length) % state.lbList.length; openLightbox(state.lbIndex); }
 function renderHours() { const now = ktNow(); const days = (state.hours && state.hours.days) || {}; $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join(""); refreshBadge(); }
 function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.href = href; el.hidden = false; } else el.hidden = true; }
-function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); } }
+function renderStore() { const s = state.store || {}; const name = s.name || "Laligurans Photo Studio"; const tag = s.tagline || DEFAULT_TAG; const parts = String(tag).split(",").map(x => x.trim()); $("brandName").textContent = name.split(" ")[0] || name; $("drawerName").textContent = name.split(" ")[0] || name; $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`; $("tagLine1").textContent = parts[0] || tag; $("tagLine2").textContent = parts[1] || ""; $("heroSub").textContent = s.about || "Premium photography, prints and frames."; $("greetBadge").textContent = greeting(); $("dPhone").textContent = CONTACT.callDisplay; $("dCall").href = CONTACT.callTel; $("dWaPhone").textContent = CONTACT.waDisplay; setWa($("dWa"), generalWaMsg()); setLink("cMap", safeUrl(s.mapUrl)); $("footName").textContent = name.split(" ")[0] || name; $("footTag").textContent = tag; $("footAddr").textContent = s.address || ""; $("footPhone").href = CONTACT.callTel; $("footPhone").textContent = CONTACT.callDisplay; setWa($("footWa"), generalWaMsg()); $("footMail").href = "mailto:" + CONTACT.email; $("footMail").textContent = CONTACT.email; setLink("sFb", safeUrl(s.facebook)); setLink("sIg", safeUrl(s.instagram)); setLink("sTk", safeUrl(s.tiktok)); $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`; const mq = s.address || name; if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; } if (location.pathname === "/" || location.pathname === "") { const homeUrl = location.origin + "/"; setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl }); setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) }); }
+  /* ===== Phase B: admin-controlled content (खाली भए default नै) ===== */
+  $("footName").textContent = s.footerName || name.split(" ")[0] || name;
+  if (s.heroTitle1) $("tagLine1").textContent = s.heroTitle1;
+  if (s.heroTitle2) $("tagLine2").textContent = s.heroTitle2;
+  const waDig = (s.whatsappPhone || "").replace(/\D/g, "");
+  state.waOverride = waDig || "";
+  const atw = $("aboutTextWrap");
+  if (atw && s.aboutFullText) atw.innerHTML = s.aboutFullText.split(/\n+/).filter(Boolean).map(t => `<p>${esc(t)}</p>`).join("");
+  const pvN = $("pvName"); if (pvN && s.proprietorName) pvN.textContent = s.proprietorName;
+  const pvR = $("pvRole"); if (pvR && s.proprietorName) pvR.textContent = "प्रोप्राइटर · " + name;
+  const pvB1 = $("pvBio1"); if (pvB1 && s.proprietorBio1) pvB1.textContent = s.proprietorBio1;
+  const pvB2 = $("pvBio2"); if (pvB2 && s.proprietorBio2) pvB2.textContent = s.proprietorBio2;
+  const pvP = $("pvPhone"); if (pvP && s.proprietorPhone) pvP.textContent = "+" + (s.proprietorPhone || "").replace(/\D/g, "");
+  const pvI = $("pvImg"); if (pvI && s.proprietorImage) pvI.src = s.proprietorImage;
+  const mb = $("mapBox"); if (mb && s.mapEmbedCode && /<iframe/.test(s.mapEmbedCode)) mb.innerHTML = s.mapEmbedCode;
+}
 
 function showLanding() { hideRouteLoader(); $("landingMain").hidden = false; $("productView").hidden = true; $("categoryView").hidden = true; $("aboutView").hidden = true; $("propView").hidden = true; const rs = $("relSec"); if (rs) rs.hidden = true; renderRecent(); }
 
@@ -492,8 +510,8 @@ function init() {
   $("propCard").addEventListener("click", () => { history.pushState({}, "", "/proprietor"); route(); });
   $("propClose").addEventListener("click", () => { $("propModal").hidden = true; });
   $("propModal").addEventListener("click", e => { if (e.target === $("propModal")) $("propModal").hidden = true; });
-  $("propWa").addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! (Laligurans Photo Studio website बाट)`, PROP.waDigits); });
-  const pw2 = $("propWa2"); if (pw2) pw2.addEventListener("click", () => { waOpen(`Namaste ${PROP.name} jyu! (Laligurans Photo Studio website बाट)`, PROP.waDigits); });
+  $("propWa").addEventListener("click", () => { waOpen(`Namaste ${propName()} jyu! (${storeName()} website बाट)`, propWaDigits()); });
+  const pw2 = $("propWa2"); if (pw2) pw2.addEventListener("click", () => { waOpen(`Namaste ${propName()} jyu! (${storeName()} website बाट)`, propWaDigits()); });
 
   $("svcGrid").addEventListener("click", e => { const b = e.target.closest(".svc-card"); if (!b) return; document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b)); const s = SERVICES[+b.dataset.svc]; $("svcName").textContent = s.t; setWa($("svcWa"), `Namaste ${storeName()}! I would like to know more about: ${s.t}`); $("svcActions").hidden = false; });
 
