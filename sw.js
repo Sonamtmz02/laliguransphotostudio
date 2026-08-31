@@ -23,14 +23,11 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-
   const sameOrigin = url.origin === self.location.origin;
   const isCssJs = sameOrigin && (url.pathname === "/script.js" || url.pathname === "/style.css");
   const isStatic = (sameOrigin && url.pathname === "/logo.png") || url.hostname === "www.gstatic.com";
-
   /* pages, /img/, firestore लाई छुँदैन — SSR सधैं fresh रहन्छ */
   if (!isCssJs && !isStatic) return;
-
   if (isCssJs) {
     /* network-first: नयाँ deploy तुरुन्तै, offline मा cache fallback */
     e.respondWith(
