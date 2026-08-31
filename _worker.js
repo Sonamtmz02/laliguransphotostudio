@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v17 - about/proprietor pages + enhanced sitemap + security + instant cache */
+/* LALIGURANS edge router v18 - sidebar SSR categories + security + instant cache + SSR pages */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -39,6 +39,7 @@ function injectCanonical(html,url){
   return html;
 }
 
+/* home grid ko लागि SSR product cards */
 function ssrHomeLinks(payload){
   const prods=[...payload.products].sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)||String(a.name||"").localeCompare(String(b.name||""))).slice(0,12);
   return prods.map(p=>{
@@ -46,9 +47,9 @@ function ssrHomeLinks(payload){
     return `<article class="p-card"><div class="p-media">${img?`<img src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" loading="lazy" decoding="async">`:`<div class="p-noimg"></div>`}</div><div class="p-body"><strong class="p-name"><a href="/product/${escAttr(p.slug)}">${esc(p.name)}</a></strong><div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span><a class="p-detail" href="/product/${escAttr(p.slug)}">View Details ›</a></div></div></article>`;
   }).join("");
 }
-function ssrColLinks(payload){
-  const firstImg=(payload.products.find(p=>p.imageUrl)||{}).imageUrl||"";
-  return `<a class="col-card col-all" href="/#services">${firstImg?`<img src="${escAttr(firstImg)}" alt="All Products" loading="lazy" decoding="async">`:`<span class="col-motif">❀</span>`}<span class="col-name">All Products ❀</span></a>`+payload.categories.map(c=>`<a class="col-card" href="/category/${escAttr(slugify(c.name))}"><span class="col-name">${esc(c.name)}</span></a>`).join("");
+/* CHANGE 1: sidebar COLLECTIONS accordion ko लागि SSR categories */
+function ssrDrawerCats(payload){
+  return `<button class="d-cat" data-cat="all">All Products</button>`+payload.categories.map(c=>`<button class="d-cat" data-cat="${escAttr(c.id)}">${esc(c.name)}</button>`).join("");
 }
 
 async function fetchStamp(coll){
@@ -88,7 +89,7 @@ async function handleImg(path){
   return new Response(await r.arrayBuffer(),{headers:secHeaders({"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"})});
 }
 
-/* ===== ENHANCED SITEMAP: image sitemap + priority + skip "item" slug + info pages ===== */
+/* enhanced sitemap: image + priority + info pages + skip "item" slug */
 async function handleSitemap(request){
   const origin=new URL(request.url).origin;
   const today=new Date().toISOString().slice(0,10);
@@ -98,21 +99,16 @@ async function handleSitemap(request){
     const [prods,cats]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories")]);
     const active=assignSlugs(prods.filter(p=>p.isActive));
 
-    /* Home - highest priority */
     urls.push({loc:"/",last:today,cf:"daily",pr:"1.0",img:null});
-
-    /* Info pages */
     urls.push({loc:"/about",last:today,cf:"monthly",pr:"0.5",img:null});
     urls.push({loc:"/proprietor",last:today,cf:"monthly",pr:"0.5",img:null});
 
-    /* Categories - skip slugify fail ("item") */
     for(const c of cats.filter(c=>c.isActive)){
       const sl=slugify(c.name);
       if(!sl||sl==="item"){debug=debug==="ok"?"warn:skipped-cat-"+c.name:debug;continue;}
       urls.push({loc:"/category/"+sl,last:today,cf:"weekly",pr:"0.8",img:null});
     }
 
-    /* Products - with image for Google Images */
     for(const p of active){
       const img=publicImg(origin,p);
       urls.push({
@@ -125,7 +121,6 @@ async function handleSitemap(request){
     }
   }catch(e){debug="error:"+String(e.message||e);}
 
-  /* Build XML with image namespace */
   const imgNS = urls.some(u=>u.img) ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : '';
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${imgNS}>
@@ -152,7 +147,7 @@ ${urls.map(u=>{
   return new Response(xml,{headers:secHeaders({"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug})});
 }
 
-/* ===== NEW v17: ABOUT / PROPRIETOR standalone pages (SSR) ===== */
+/* ABOUT / PROPRIETOR standalone pages (SSR) */
 async function handleInfoPage(request,env,ctx,kind){
   const origin=new URL(request.url).origin;
   const stamp=await getStamp();
@@ -208,7 +203,8 @@ async function handleHome(request,env,ctx){
     const heroImg=(payload.gallery[0]&&payload.gallery[0].imageUrl)||(payload.products[0]&&payload.products[0].imageUrl)||"";
     if(heroImg)html=html.replace("</head>",`<link rel="preload" as="image" href="${escAttr(heroImg)}" fetchpriority="high">\n</head>`);
     html=html.replace('<div id="productGrid" class="p-grid"></div>','<div id="productGrid" class="p-grid">'+ssrHomeLinks(payload)+'</div>');
-    html=html.replace('<div id="colGrid" class="col-grid"></div>','<div id="colGrid" class="col-grid">'+ssrColLinks(payload)+'</div>');
+    /* CHANGE 2: categories aba sidebar accordion ma SSR */
+    html=html.replace('<div id="drawerCatsMore" class="drawer-cats closed"></div>','<div id="drawerCatsMore" class="drawer-cats closed">'+ssrDrawerCats(payload)+'</div>');
     const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
     html=html.replace("</body>",boot);
     ctx.waitUntil(htmlCachePut(request,"home",stamp,html));
