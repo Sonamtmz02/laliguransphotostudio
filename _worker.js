@@ -87,7 +87,6 @@ async function handleImg(path){
   return new Response(await r.arrayBuffer(),{headers:secHeaders({"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"})});
 }
 
-/* ===== ENHANCED SITEMAP: image sitemap + priority + skip "item" slug + info pages ===== */
 async function handleSitemap(request){
   const origin=new URL(request.url).origin;
   const today=new Date().toISOString().slice(0,10);
@@ -96,62 +95,29 @@ async function handleSitemap(request){
   try{
     const [prods,cats]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"products"),fetchDocs(PROJECT_ID,API_KEY,"categories")]);
     const active=assignSlugs(prods.filter(p=>p.isActive));
-
-    /* Home - highest priority */
     urls.push({loc:"/",last:today,cf:"daily",pr:"1.0",img:null});
-
-    /* Info pages */
     urls.push({loc:"/about",last:today,cf:"monthly",pr:"0.5",img:null});
     urls.push({loc:"/proprietor",last:today,cf:"monthly",pr:"0.5",img:null});
-
-    /* Categories - skip slugify fail ("item") */
     for(const c of cats.filter(c=>c.isActive)){
       const sl=slugify(c.name);
       if(!sl||sl==="item"){debug=debug==="ok"?"warn:skipped-cat-"+c.name:debug;continue;}
       urls.push({loc:"/category/"+sl,last:today,cf:"weekly",pr:"0.8",img:null});
     }
-
-    /* Products - with image for Google Images */
     for(const p of active){
       const img=publicImg(origin,p);
-      urls.push({
-        loc:"/product/"+p.slug,
-        last:p.updatedAt?String(p.updatedAt).slice(0,10):today,
-        cf:"weekly",
-        pr:"0.6",
-        img:img?{loc:img,title:p.name||p.slug,caption:p.description||p.name}:null
-      });
+      urls.push({loc:"/product/"+p.slug,last:p.updatedAt?String(p.updatedAt).slice(0,10):today,cf:"weekly",pr:"0.6",img:img?{loc:img,title:p.name||p.slug,caption:p.description||p.name}:null});
     }
   }catch(e){debug="error:"+String(e.message||e);}
-
-  /* Build XML with image namespace */
   const imgNS = urls.some(u=>u.img) ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : '';
-  const xml=`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${imgNS}>
-${urls.map(u=>{
-  let block=`<url>
-    <loc>${origin}${u.loc}</loc>
-    <lastmod>${u.last}</lastmod>
-    <changefreq>${u.cf}</changefreq>
-    <priority>${u.pr}</priority>`;
-  if(u.img){
-    block+=`
-    <image:image>
-      <image:loc>${u.img.loc}</image:loc>
-      <image:title>${esc(u.img.title)}</image:title>
-      <image:caption>${esc(u.img.caption)}</image:caption>
-    </image:image>`;
-  }
-  block+=`
-  </url>`;
-  return block;
-}).join("\n")}
-</urlset>`;
-
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${imgNS}>\n`+urls.map(u=>{
+    let block=`<url>\n<loc>${origin}${u.loc}</loc>\n<lastmod>${u.last}</lastmod>\n<changefreq>${u.cf}</changefreq>\n<priority>${u.pr}</priority>`;
+    if(u.img){block+=`\n<image:image>\n<image:loc>${u.img.loc}</image:loc>\n<image:title>${esc(u.img.title)}</image:title>\n<image:caption>${esc(u.img.caption)}</image:caption>\n</image:image>`;}
+    block+=`\n</url>`;
+    return block;
+  }).join("\n")+`\n</urlset>`;
   return new Response(xml,{headers:secHeaders({"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug})});
 }
 
-/* ===== NEW v17: ABOUT / PROPRIETOR standalone pages (SSR) ===== */
 async function handleInfoPage(request,env,ctx,kind){
   const origin=new URL(request.url).origin;
   const stamp=await getStamp();
