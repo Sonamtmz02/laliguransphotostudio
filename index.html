@@ -17,7 +17,6 @@
 <meta name="twitter:image" id="twImage" content="" />
 <link rel="canonical" id="canonical" href="https://www.laliguransphotostudio.com.np/" />
 <link rel="icon" type="image/png" href="/logo.png">
-<!-- PWA: Add to Home Screen -->
 <link rel="manifest" href="/manifest.webmanifest" />
 <meta name="theme-color" content="#b3232f" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -27,7 +26,7 @@
 <link rel="apple-touch-icon" href="/logo.png" />
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<link rel="stylesheet" href="/style.css?v=5" />
+<link rel="stylesheet" href="/style.css?v=7" />
 <script type="application/ld+json" id="jsonld">{}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Laligurans Photo Studio","url":"https://www.laliguransphotostudio.com.np/","logo":"https://www.laliguransphotostudio.com.np/logo.png","description":"Premium photo studio, frames, and personalized gifts in Chautara, Sindhupalchok, Nepal. 30+ years of trusted service.","foundingDate":"1995","telephone":"+97711620217","email":"laliguranstudio@gmail.com","founder":{"@type":"Person","name":"Surya Lal Shretha"},"address":{"@type":"PostalAddress","streetAddress":"Chautara","addressLocality":"Chautara","addressRegion":"Sindhupalchok","addressCountry":"NP"},"geo":{"@type":"GeoCoordinates","latitude":"27.7467","longitude":"85.6989"},"sameAs":["https://www.facebook.com/laliguransphotostudio","https://www.instagram.com/laliguransphotostudio"],"contactPoint":{"@type":"ContactPoint","telephone":"+97711620217","contactType":"customer service","availableLanguage":["Nepali","English"]}},{"@type":"WebSite","name":"Laligurans Photo Studio","url":"https://www.laliguransphotostudio.com.np/","inLanguage":"ne-NP","publisher":{"@id":"https://www.laliguransphotostudio.com.np/#organization"}},{"@type":"LocalBusiness","@id":"https://www.laliguransphotostudio.com.np/#localbusiness","name":"Laligurans Photo Studio","image":"https://www.laliguransphotostudio.com.np/logo.png","telephone":"+97711620217","email":"laliguranstudio@gmail.com","priceRange":"Rs. 200 - 5000","address":{"@type":"PostalAddress","streetAddress":"Chautara","addressLocality":"Chautara","addressRegion":"Sindhupalchok","postalCode":"45600","addressCountry":"NP"},"geo":{"@type":"GeoCoordinates","latitude":"27.7467","longitude":"85.6989"},"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"09:00","closes":"18:00"}],"sameAs":["https://www.facebook.com/laliguransphotostudio","https://www.instagram.com/laliguransphotostudio"]}]}</script>
 </head>
@@ -41,7 +40,7 @@
 <div id="annBar" class="ann-bar" hidden></div>
 
 <header id="siteHead" class="site-head">
-   <button id="navToggle" class="icon-btn" aria-label="Menu"><span class="b1"></span><span class="b2"></span><span class="b3"></span></button>
+  <button id="navToggle" class="icon-btn" aria-label="Menu"><span class="b1"></span><span class="b2"></span><span class="b3"></span></button>
   <a class="brand" href="/">
     <span class="brand-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><img src="/logo.png" alt="" onerror="this.style.display='none'"></span>
     <span class="brand-txt"><strong id="brandName">Laligurans</strong><small>PHOTO STUDIO</small></span>
@@ -72,20 +71,24 @@
     <div class="drawer-brand"><span class="brand-ic"><img src="/logo.png" alt="" onerror="this.style.display='none'"><svg class="ic" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="brand-txt"><strong id="drawerName">Laligurans</strong><small>PHOTO STUDIO</small></span></div>
     <button id="drawerClose" class="icon-btn" aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
   </div>
-  <p class="dc-title">COLLECTIONS</p>
-  <div id="drawerCats" class="drawer-cats"></div>
 
-  <p class="dc-title" style="margin-top:1.2rem">QUICK LINKS</p>
+  <button id="colToggle" class="dc-toggle" aria-expanded="false" aria-controls="drawerCats">
+    <span class="dc-title" style="margin:0;padding:0">COLLECTIONS</span>
+    <svg class="ic sm dc-arrow" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+  <div id="drawerCats" class="drawer-cats" hidden></div>
+
+  <p class="dc-title">QUICK LINKS</p>
   <div class="drawer-quick">
     <a class="d-link" href="/"><svg class="ic sm" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg> Home</a>
     <a class="d-link" href="/#ourservices"><svg class="ic sm" viewBox="0 0 24 24"><path d="M14 2l6 6v14H4V2z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg> Our Services</a>
-    <a class="d-link" href="/#collections"><svg class="ic sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Collections</a>
+    <a class="d-link" href="/#services"><svg class="ic sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Collections</a>
     <a class="d-link" href="/about"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> About Us</a>
     <a class="d-link" href="/#gallery"><svg class="ic sm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg> Gallery</a>
     <a class="d-link" href="/#hours"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Hours</a>
   </div>
 
-  <p class="dc-title" style="margin-top:1.2rem">CONTACT STUDIO</p>
+  <p class="dc-title">CONTACT STUDIO</p>
   <div class="drawer-contact">
     <a id="dCall" class="d-contact" href="tel:+97711620217"><svg class="ic sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> <span id="dPhone">011-620217</span></a>
     <a id="dWa" class="d-contact wa" href="#" target="_blank" rel="noopener" hidden><svg class="ic sm" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.1c-.2.7-1.3 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-2.8-.9-4.9-3-5.9-5.4-.3-.7-.4-1.4-.2-1.9.2-.5.8-1.4 1.2-1.5.3-.1.6 0 .8.3l.9 1.6c.1.3.1.5-.1.8l-.5.6c-.1.2-.2.4 0 .6.6 1.1 1.6 2 2.8 2.6.3.1.5.1.7-.1l.7-.7c.2-.2.5-.3.8-.2l1.7.8c.3.1.5.4.4.7Z"/></svg> <span id="dWaPhone"></span></a>
@@ -93,7 +96,7 @@
     <a id="dMap" class="d-contact" href="#" target="_blank" rel="noopener" hidden><svg class="ic sm" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> <span id="dAddr">Chautara, Sindhupalchok</span></a>
   </div>
 
-  <p class="dc-title" style="margin-top:1.2rem">PROPRIETOR</p>
+  <p class="dc-title">PROPRIETOR</p>
   <a class="drawer-prop" href="/proprietor">
     <span class="drawer-prop-img"><span class="prop-init">स</span><img src="/proprietor.png" alt="" onerror="this.style.display='none'"></span>
     <span class="drawer-prop-txt">
@@ -103,7 +106,7 @@
     </span>
   </a>
 
-  <p class="dc-title" style="margin-top:1.2rem">FOLLOW US</p>
+  <p class="dc-title">FOLLOW US</p>
   <div id="drawerSocial" class="drawer-social"></div>
 </div>
 
@@ -132,7 +135,7 @@
         <p id="heroKicker" class="hero-kicker"><i class="fl">❀</i> WELCOME TO LALIGURANS PHOTO STUDIO</p>
         <h1 class="hero-title"><span id="tagLine1">सम्झनाको लागी फोटो</span><span id="tagLine2" class="grad">फोटोको लागी गुराँस</span></h1>
         <p id="heroSub" class="hero-sub">Premium photography, prints and frames.</p>
-        <div class="hero-cta"><a href="#collections" class="btn-cta">Explore Collection</a></div>
+        <div class="hero-cta"><a href="#services" class="btn-cta">Explore Collection</a></div>
       </div>
       <div id="heroVisual" class="hero-visual" aria-hidden="true"></div>
     </div>
@@ -147,7 +150,19 @@
     </div>
   </section>
 
-  <section id="ourservices" class="section alt">
+  <!-- NEW ORDER: All Products (was Our Services) -->
+  <section id="services" class="section alt">
+    <div class="wrap">
+      <div class="sec-head reveal"><p class="eyebrow">OUR PRODUCTS</p><h2 id="prodTitle">All Products</h2><p id="prodSub" class="muted">Loading collection...</p></div>
+      <div id="catChips" class="chips"></div>
+      <div id="productGrid" class="p-grid"></div>
+      <div id="scrollSentinel" class="scroll-sentinel"></div>
+      <section id="recentSec" hidden><p class="eyebrow">RECENTLY VIEWED</p><div id="recentRow" class="recent-row"></div></section>
+    </div>
+  </section>
+
+  <!-- NEW ORDER: Our Services (was All Products) -->
+  <section id="ourservices" class="section">
     <div class="wrap">
       <div class="sec-top reveal"><p class="eyebrow">WHAT WE DO</p><h2>Our Services</h2><p class="muted">Service मा tap गर्नुहोस् — enquiry को लागि।</p></div>
       <div id="svcGrid" class="svc-grid"></div>
@@ -158,16 +173,6 @@
           <a id="svcCall" class="btn-ghost2" href="tel:+97711620217"><svg class="ic sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg> Call Studio</a>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section id="services" class="section">
-    <div class="wrap">
-      <div class="sec-head reveal"><p class="eyebrow">OUR PRODUCTS</p><h2 id="prodTitle">All Products</h2><p id="prodSub" class="muted">Loading collection...</p></div>
-      <div id="catChips" class="chips"></div>
-      <div id="productGrid" class="p-grid"></div>
-      <div id="scrollSentinel" class="scroll-sentinel"></div>
-      <section id="recentSec" hidden><p class="eyebrow">RECENTLY VIEWED</p><div id="recentRow" class="recent-row"></div></section>
     </div>
   </section>
 
@@ -240,7 +245,7 @@
   </div>
 </div>
 
-  <!-- ABOUT PAGE -->
+<!-- ABOUT PAGE -->
 <div id="aboutView" hidden>
   <div class="wrap narrow">
     <a href="/" class="pp-back">‹ Back to Home</a>
@@ -274,12 +279,12 @@
       <p class="prop-phone">+977 9841486925</p>
       <div class="prop-btns">
         <a class="btn-ghost2" href="tel:+9779841486925">Call</a>
-        <a class="p-wa" href="https://wa.me/9779841486925?text=Namaste%20Surya%20Lal%20Shretha%20jyu!%20(Laligurans%20Photo%20Studio%20website%20%E0%A4%AC%E0%A4%BE%E0%A4%9F)" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="p-wa" href="https://wa.me/9779841486925?text=Namaste%20Surya%20Lal%20Shretha%20jyu!%20(Laligurans%20Photo%20Studio%20website%20बाट)" target="_blank" rel="noopener">WhatsApp</a>
       </div>
     </div>
   </div>
 </div>
-  
+
 <footer class="site-foot">
   <div class="wrap" style="padding:2.2rem 1.2rem 1.6rem">
     <div class="foot-brand">
@@ -322,7 +327,7 @@
       <h3 class="about-title">हाम्रो बारेमा</h3>
       <span class="about-badge">❀ ३०+ वर्षको विश्वास</span>
       <div class="about-text">
-        <p>करिब ३० वर्षअघि सुरु भएको हाम्रो स्टुडियो आज स्थानीय ग्राहकसँग गहिरो रूपमा जोडिएको एउटा विश्वासिलो नामका रूपमा अघि बढिरहेको छ।</p>
+        <p>करिब ० वर्षअघि सुरु भएको हाम्रो स्टुडियो आज स्थानीय ग्राहकसँग गहिरो रूपमा जोडिएको एउटा विश्वासिलो नामका रूपमा अघि बढिरहेको छ।</p>
         <p>यी वर्षहरूमा हामीले धेरै ग्राहकका जीवनका महत्वपूर्ण क्षणहरूलाई फोटो तथा विभिन्न स्टुडियो सेवामार्फत सम्झनामा सुरक्षित गर्ने अवसर पाएका छौँ। समयसँगै प्रविधि परिवर्तन भयो, सेवाका तरिका परिवर्तन भए, तर ग्राहकलाई राम्रो सेवा दिने हाम्रो उद्देश्य भने सधैँ उस्तै रह्यो।</p>
         <p>स्थानीय ग्राहकहरूले वर्षौँदेखि दिनुभएको माया, विश्वास र साथ नै हाम्रो सबैभन्दा ठूलो उपलब्धि हो। यही विश्वासलाई कायम राख्दै र समयअनुसार आफूलाई सुधार गर्दै हामी अझ राम्रो सेवा प्रदान गर्ने प्रयासमा निरन्तर अघि बढिरहेका छौँ।</p>
         <p>हाम्रो लागि प्रत्येक ग्राहक केवल ग्राहक होइन, हाम्रो लामो यात्राको एउटा महत्वपूर्ण हिस्सा हो।</p>
@@ -340,7 +345,7 @@
       <h3>सूर्यलाल श्रेष्ठ</h3>
       <p class="prop-role">प्रोप्राइटर · Laligurans Photo Studio</p>
     </div>
-    <p class="prop-bio">विगत करिब ३० वर्षदेखि यस स्टुडियोलाई निरन्तर रूपमा सञ्चालन गर्दै आउनुभएका सूर्यलाल श्रेष्ठ यस व्यवसायका प्रोप्राइटर हुनुहुन्छ। लामो समयदेखि स्थानीय ग्राहकसँग जोडिँदै, उहाँको मेहनत, अनुभव र ग्राहकप्रतिको आत्मीय व्यवहारमार्फत स्टुडियोलाई यहाँसम्म ल्याउनुभएको छ।</p>
+    <p class="prop-bio">विगत करिब ३ वर्षदेखि यस स्टुडियोलाई निरन्तर रूपमा सञ्चालन गर्दै आउनुभएका सूर्यलाल श्रेष्ठ यस व्यवसायका प्रोप्राइटर हुनुहुन्छ। लामो समयदेखि स्थानीय ग्राहकसँग जोडिँदै, उहाँको मेहनत, अनुभव र ग्राहकप्रतिको आत्मीय व्यवहारमार्फत स्टुडियोलाई यहाँसम्म ल्याउनुभएको छ।</p>
     <p class="prop-bio">उहाँको निरन्तर प्रयास र ग्राहकको विश्वास नै यस स्टुडियोको यात्राको महत्वपूर्ण आधार हो।</p>
     <p class="prop-phone">+977 9841486925</p>
     <div class="prop-btns">
