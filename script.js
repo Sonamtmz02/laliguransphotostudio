@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v14 (drawer accordion categories + home cleanup) */
+/* LALIGURANS USER PANEL - v14 (final clean: drawer accordion + all features) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -99,7 +99,7 @@ async function renderFavs() {
   $("favList").innerHTML = items.length ? items.map(p => `<button class="d-cat" data-favgo="${p.id}">${esc(p.name)} · ${fmtMoney(p.price)}</button>`).join("") : `<p class="muted" style="padding:0 .4rem">तपाईंको wishlist खाली छ।<br>Product को ♥ थिचेर save गर्नुहोस्।</p>`;
 }
 
-/* ===== CART (free: localStorage + WhatsApp) ===== */
+/* ===== CART ===== */
 function loadCart() { try { state.cart = JSON.parse(localStorage.getItem("lgs_cart") || "[]"); } catch { state.cart = []; } }
 function saveCart() { localStorage.setItem("lgs_cart", JSON.stringify(state.cart)); }
 function cartCount() { const el = $("cartCount"); if (!el) return; const n = state.cart.reduce((a,x)=>a+(x.qty||0),0); el.textContent = n; el.hidden = !n; }
@@ -175,7 +175,6 @@ function revealize() { document.querySelectorAll(".reveal:not(.in)").forEach(el 
 
 function renderAnnouncements() { const now = Date.now(); const act = state.announcements.filter(a => { if (a.published !== true) return false; const s = a.startsAt ? a.startsAt.toMillis() : null, e = a.endsAt ? a.endsAt.toMillis() : null; if (s && s > now) return false; if (e && e < now) return false; return true; }).sort((a,b) => (b.priorityRank||2) - (a.priorityRank||2)); const bar = $("annBar"); if (!act.length) { bar.hidden = true; return; } bar.hidden = false; bar.innerHTML = act.map(a => esc(a.message)).join("  ·  "); }
 
-/* ===== DRAWER: collections accordion (All Products + categories) + contact + social ===== */
 function renderDrawer() {
   const cats = state.categories || [];
   const more = $("drawerCatsMore");
@@ -198,12 +197,7 @@ function renderDrawer() {
   if (ds) ds.innerHTML = socials.length ? socials.map(x => `<a class="ds-icon ${x.cls}" href="${x.href}" target="_blank" rel="noopener" aria-label="${x.label}">${x.svg}</a>`).join("") : `<p class="muted" style="font-size:.8rem;padding:0 .4rem">Social links छिट्टै आउँदै छन्।</p>`;
 }
 
-/* ===== text-only category chips (guarded; home section removed) ===== */
-function renderCollections() {
-  const el = $("colGrid"); if (!el) return;
-  const cats = state.categories; if (!cats) { el.innerHTML = ""; return; }
-  el.innerHTML = `<button class="col-chip col-all" data-col="all">❀ All Products</button>` + cats.map(c => `<button class="col-chip" data-col="${c.id}">${esc(c.name)}</button>`).join("");
-}
+function renderCollections() { const el = $("colGrid"); if (!el) return; const cats = state.categories; if (!cats) { el.innerHTML = ""; return; } el.innerHTML = `<button class="col-chip col-all" data-col="all">❀ All Products</button>` + cats.map(c => `<button class="col-chip" data-col="${c.id}">${esc(c.name)}</button>`).join(""); }
 function renderServices() { $("svcGrid").innerHTML = SERVICES.map((s,i) => `<button class="svc-card" data-svc="${i}"><span class="svc-ic"><svg class="ic" viewBox="0 0 24 24">${s.ic}</svg></span><strong>${esc(s.t)}</strong><span class="svc-d">${esc(s.d)}</span></button>`).join(""); }
 function renderChips() { const cats = state.categories || []; $("catChips").innerHTML = `<button class="chip ${state.catFilter === "all" ? "active" : ""}" data-cat="all">All</button>` + cats.map(c => `<button class="chip ${state.catFilter === c.id ? "active" : ""}" data-cat="${c.id}">${esc(c.name)}</button>`).join(""); const c = cats.find(x => x.id === state.catFilter); $("prodTitle").textContent = c ? c.name : "All Products"; $("prodSub").textContent = c ? (c.description || "Collection") : "Our full collection"; }
 
@@ -459,7 +453,7 @@ function init() {
   if (bootFromSSR()) {
     renderDrawer(); renderChips(); renderCollections(); renderGallery(); renderHeroVisual(); renderAnnouncements(); renderStore(); renderHours();
     if (state._ssr && !isProductPath && !isInfoPath) {
-      $("productGrid").innerHTML = state.products.filter(p => matchesFilters(p)).map(productCard).join("");
+      $("productGrid").innerHTML = state.products.filter(p => matchesFilters(p)).slice(0, 12).map(productCard).join("");
       sentinel("");
     }
   }
@@ -484,7 +478,8 @@ function init() {
   $("navToggle").addEventListener("click", () => openDrawer("drawer"));
   $("drawer").addEventListener("click", e => { if (e.target.closest("a,button")) setTimeout(closeDrawers, 60); });
   const dct = $("drawerCatsToggle");
-  if (dct) dct.addEventListener("click", () => { const m = $("drawerCatsMore"); if (!m) return; const closed = m.classList.toggle("closed"); dct.classList.toggle("open", !closed); dct.setAttribute("aria-expanded", closed ? "false" : "true"); });
+  if (dct) dct.addEventListener("click", e => { e.stopPropagation(); const m = $("drawerCatsMore"); if (!m) return; const closed = m.classList.toggle("closed"); dct.classList.toggle("open", !closed); dct.setAttribute("aria-expanded", closed ? "false" : "true"); });
+  $("drawerCatsMore").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; e.stopPropagation(); state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("favToggle").addEventListener("click", () => { renderFavs(); openDrawer("favDrawer"); });
   $("cartToggle").addEventListener("click", () => { renderCart(); openDrawer("cartDrawer"); });
   $("cartClose").addEventListener("click", closeDrawers);
@@ -506,13 +501,6 @@ function init() {
   $("svcGrid").addEventListener("click", e => { const b = e.target.closest(".svc-card"); if (!b) return; document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b)); const s = SERVICES[+b.dataset.svc]; $("svcName").textContent = s.t; setWa($("svcWa"), `Namaste ${storeName()}! I would like to know more about: ${s.t}`); $("svcActions").hidden = false; });
 
   $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; state.search = ""; $("searchInput").value = ""; renderChips(); renderDrawer(); state.searchMode = false; loadProductsPage(true); });
-  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-chip"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
-  $("drawerCatsMore").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
-  $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
-
-  $("ppSizes").addEventListener("click", e => { const b = e.target.closest("[data-size]"); if (!b) return; state.pmSize = state.pmSize === b.dataset.size ? null : b.dataset.size; Array.from($("ppSizes").querySelectorAll(".pm-size")).forEach(x => x.classList.toggle("sel", x.dataset.size === state.pmSize)); });
-  $("ppCart").addEventListener("click", () => { if (state.pmId) addToCart(state.pmId, state.pmSize || null); });
-
   $("productGrid").addEventListener("click", e => { const f = e.target.closest("[data-fav]"); if (f) { toggleFav(f.dataset.fav); return; } if (e.target.closest("[data-share]")) return; if (e.target.closest("[data-cart]")) return; if (e.target.closest("a")) return; const card = e.target.closest(".p-card"); if (card && card.dataset.id) { const p = state.products.find(x => x.id === card.dataset.id); if (p) openProductModal(p); } });
   $("pmClose").addEventListener("click", () => { $("productModal").hidden = true; state.pmId = null; });
   $("pmFav").addEventListener("click", () => { if (state.pmId) toggleFav(state.pmId); });
@@ -545,6 +533,9 @@ function init() {
   $("lightbox").addEventListener("touchend", e => { if (lbX == null) return; const dx = e.changedTouches[0].clientX - lbX; if (dx > 48) lbNav(-1); else if (dx < -48) lbNav(1); lbX = null; }, { passive: true });
   $("lightbox").addEventListener("click", e => { if (e.target === $("lightbox")) $("lightbox").hidden = true; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") { $("lightbox").hidden = true; $("productModal").hidden = true; $("propModal").hidden = true; $("aboutModal").hidden = true; $("shareModal").hidden = true; closeDrawers(); } if (!$("lightbox").hidden && e.key === "ArrowRight") lbNav(1); if (!$("lightbox").hidden && e.key === "ArrowLeft") lbNav(-1); });
+
+  $("ppSizes").addEventListener("click", e => { const b = e.target.closest("[data-size]"); if (!b) return; state.pmSize = state.pmSize === b.dataset.size ? null : b.dataset.size; Array.from($("ppSizes").querySelectorAll(".pm-size")).forEach(x => x.classList.toggle("sel", x.dataset.size === state.pmSize)); });
+  $("ppCart").addEventListener("click", () => { if (state.pmId) addToCart(state.pmId, state.pmSize || null); });
   revealize();
 
   if (typeof firebase === "undefined") { if (!state._ssr) $("productGrid").innerHTML = `<p class="muted">Loading failed. Internet जाँच गर्नुहोस्।</p>`; return; }
