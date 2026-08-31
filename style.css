@@ -290,3 +290,21 @@ body.dark .cart-foot{border-top-color:#3a3533}
 .info-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.2rem;margin:1rem 0 2rem;display:flex;flex-direction:column;gap:.8rem}
 .info-card .prop-img.big{width:84px;height:84px}
 .info-card .prop-btns{display:flex;gap:.6rem;flex-wrap:wrap}
+
+/* ===== WIDE SCREEN FIX: ठूलो monitor मा खाली side भरिने ===== */
+@media(min-width:1360px){
+  .wrap{max-width:1280px}
+}
+@media(min-width:1600px){
+  .wrap{max-width:1520px}
+  .hero-visual{height:480px}
+  .g-grid{grid-template-columns:repeat(4,1fr)}
+}
+@media(min-width:1900px){
+  .wrap{max-width:1760px}
+  .p-grid{grid-template-columns:repeat(5,1fr)}
+  .p-grid.small{grid-template-columns:repeat(5,1fr)}
+  .g-grid{grid-template-columns:repeat(5,1fr)}
+  .col-grid{grid-template-columns:repeat(6,1fr)}
+  .hero-visual{height:540px}
+}
