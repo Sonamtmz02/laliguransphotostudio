@@ -438,3 +438,20 @@ body.menu-open #navToggle .b3{transform:translateY(-7px) rotate(-45deg)}
 .d-link::before,.d-contact::before{content:"";position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:3px;background:#b3232f;transform:scaleY(0);transition:transform .25s ease}
 .d-link:hover::before,.d-link:active::before{transform:scaleY(1)}
 .d-link:active,.d-contact:active,.d-cat:active{transform:scale(.98)}
+
+/* ===== TEXT-ONLY CATEGORY CHIPS (fast home) ===== */
+.col-grid{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1rem}
+.col-chip{padding:.7rem 1.2rem;border-radius:999px;border:1.5px solid #e5d5d0;background:#fff;font-size:.92rem;font-weight:600;color:#3a3330;cursor:pointer;transition:all .2s ease;text-decoration:none}
+.col-chip:hover,.col-chip:active{border-color:#b3232f;color:#b3232f;transform:translateY(-1px);box-shadow:0 4px 12px rgba(179,35,47,.12)}
+.col-chip.col-all{background:#b3232f;border-color:#b3232f;color:#fff}
+.col-chip.col-all:hover,.col-chip.col-all:active{color:#fff}
+body.dark .col-chip{background:#242019;border-color:#3a332f;color:#e5ddd6}
+body.dark .col-chip.col-all{background:#b3232f;border-color:#b3232f;color:#fff}
+
+/* ===== SIDEBAR COLLECTIONS ACCORDION (mobile+tablet+desktop) ===== */
+.dc-toggle{display:flex;align-items:center;justify-content:space-between;width:calc(100% - 1.4rem);margin:1.1rem .7rem .4rem;padding:.5rem .4rem;background:none;border:none;cursor:pointer;letter-spacing:.14em;font-size:.68rem;font-weight:700;color:inherit;opacity:.75}
+.dc-toggle .chev{transition:transform .3s ease}
+.dc-toggle.open .chev{transform:rotate(180deg)}
+#drawerCatsMore{overflow:hidden;max-height:400px;opacity:1;transition:max-height .4s ease,opacity .3s ease}
+#drawerCatsMore.closed{max-height:0;opacity:0}
+@media (min-width:1024px){.drawer{width:340px}}
