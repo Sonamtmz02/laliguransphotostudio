@@ -31,7 +31,7 @@ a{color:var(--link)}
 .w60{width:60%}.w40{width:40%}.w80{width:80%;margin-bottom:.9rem}
 @keyframes sh{to{background-position:-200% 0}}
 .ann-bar{background:linear-gradient(90deg,var(--primary-dark),var(--primary));color:#fff;padding:.42rem 1rem;text-align:center;font-weight:700;font-size:.76rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.ann-bar::before{content:"❀  ";opacity:.85}
+.ann-bar::before{content:"❀ ";opacity:.85}
 .site-head{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:.55rem;padding:.5rem .9rem;background:var(--head-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);transition:box-shadow .25s,padding .25s}
 .site-head.scrolled{box-shadow:var(--shadow);padding:.4rem .9rem}
 .icon-btn{width:2.5rem;height:2.5rem;border:0;border-radius:12px;background:transparent;color:var(--text);cursor:pointer;display:grid;place-items:center;position:relative;flex:none}
@@ -56,7 +56,7 @@ a{color:var(--link)}
 .dc-title{color:var(--text-muted);letter-spacing:.18em;font-size:.62rem;font-weight:800;margin:.9rem 1rem .4rem}
 .drawer-cats{flex:1;overflow:auto;padding:0 .9rem .9rem}
 .d-cat{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--text);border-radius:14px;padding:.75rem .9rem;margin-bottom:.35rem;font-weight:700;cursor:pointer;font-size:.92rem}
-.d-cat::before{content:"❀";color:var(--secondary);font-size:.75rem}
+.d-cat::before{content:"❀ ";color:var(--secondary);font-size:.75rem}
 .d-cat.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark)}
 .drawer-contact{border-top:1px solid var(--border);padding:.9rem 1rem;display:flex;flex-direction:column;gap:.6rem}
 .drawer-contact .dc-title{margin:0}
@@ -118,7 +118,7 @@ body.dark .greet{color:var(--primary)}
 .p-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 3px 12px rgba(0,0,0,.05);cursor:pointer;transition:transform .2s,box-shadow .2s}
 .p-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
 .p-media{position:relative}
-.p-media>img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.p-media > img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
 .p-noimg{aspect-ratio:4/3;display:grid;place-items:center;background:var(--surface-alt);color:var(--text-muted)}
 .p-noimg .ic{width:34px;height:34px}
 .p-fav{position:absolute;top:.55rem;right:.55rem;width:2.1rem;height:2.1rem;border:0;border-radius:50%;background:var(--surface);backdrop-filter:blur(5px);color:var(--text-muted);cursor:pointer;display:grid;place-items:center;transition:transform .15s}
@@ -223,15 +223,12 @@ body.dark .pm-size span:last-child{color:var(--accent)}
 .lb-nav.next{right:.7rem}
 .lb-close{position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.12);color:#fff}
 @media(max-width:360px){.brand-txt strong{font-size:.98rem}.hero-title{font-size:1.55rem}.chip{padding:.4rem .8rem;font-size:.78rem}.svc-grid{grid-template-columns:1fr}}
-
-/* about + proprietor bio (v9) */
+/* about + proprietor bio */
 .about-sec .about-text p{margin:0 0 .95rem;color:var(--text-muted);font-size:.95rem;line-height:1.85}
 .about-sec .about-text p:last-child{margin-bottom:0}
 .about-badge{display:inline-block;background:var(--primary-light);color:var(--primary-dark);border:1px solid var(--primary);border-radius:999px;padding:.4rem 1rem;font-weight:800;font-size:.72rem;margin:.2rem 0 1.1rem}
 body.dark .about-badge{color:var(--primary)}
-.prop-bio{color:var(--text-muted);font-size:.88rem;line-height:1.8;text-align:center;margin:.55rem 0}
-
-/* about CTA + about modal (v10) */
+/* about CTA + about modal */
 .about-cta{display:flex;gap:1rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.2rem 1.3rem;box-shadow:var(--shadow)}
 .about-cta-ic{font-size:1.7rem;color:var(--primary);flex:none}
 .about-cta-txt{min-width:0}
@@ -242,8 +239,7 @@ body.dark .about-badge{color:var(--primary)}
 .about-title{font-size:1.4rem;margin:.2rem 0 .5rem}
 #aboutModal .about-text p{margin:0 0 .9rem;color:var(--text-muted);font-size:.92rem;line-height:1.85}
 #aboutModal .about-text p:last-child{margin-bottom:0}
-
-/* product detail + share (SEO upgrade) */
+/* product detail + share */
 .p-extra{display:flex;justify-content:space-between;align-items:center;margin-top:.45rem}
 .p-detail{font-size:.78rem;font-weight:800;color:var(--link);text-decoration:none}
 .p-share{border:0;background:var(--surface-alt);color:var(--text-muted);border-radius:50%;width:2rem;height:2rem;display:grid;place-items:center;cursor:pointer}
@@ -262,31 +258,35 @@ body.dark .pp-price{color:var(--accent)}
 .share-opt{display:flex;flex-direction:column;gap:.4rem;align-items:center;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:.8rem .4rem;cursor:pointer;font-weight:700;font-size:.7rem;color:var(--text)}
 .share-opt .ic{width:20px;height:20px}
 .share-opt.wa{color:var(--wa)}
-
-/* description line-break fix (admin जस्तै user panel मा) */
-.p-desc, .pp-desc, #pmDesc { white-space: pre-line; }
-
-/* integrated upgrade v3 */
+.p-desc,.pp-desc,#pmDesc{white-space:pre-line}
+/* breadcrumb + related + recent */
 .scroll-sentinel{padding:1rem 0;min-height:60px}
 .recent-row{display:flex;gap:.7rem;overflow-x:auto;padding:.5rem 0}
 .recent-card{flex:0 0 130px;border:1px solid var(--border);border-radius:14px;overflow:hidden;text-decoration:none;color:var(--text);background:var(--surface)}
 .recent-card img{width:100%;aspect-ratio:1;object-fit:cover}
 .recent-card span{display:block;padding:.4rem .5rem 0;font-size:.72rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .recent-card b{display:block;padding:0 .5rem .5rem;font-size:.72rem;color:var(--primary-dark)}
-.breadcrumb{font-size:.75rem;color:var(--text-muted);margin:.4rem 0}
-.breadcrumb a{color:var(--link);text-decoration:none}
-.p-grid.small{grid-template-columns:repeat(2,1fr)}
-@media(min-width:900px){.p-grid.small{grid-template-columns:repeat(4,1fr)}}
-
-/* Phase 2: breadcrumb + related + recent */
-.scroll-sentinel{padding:1rem 0;min-height:60px}
 .breadcrumb{font-size:.75rem;color:var(--text-muted);margin:.4rem 0}
 .breadcrumb a{color:var(--link);text-decoration:none}
 .breadcrumb span{color:var(--text)}
 .p-grid.small{grid-template-columns:repeat(2,1fr)}
 @media(min-width:900px){.p-grid.small{grid-template-columns:repeat(4,1fr)}}
-.recent-row{display:flex;gap:.7rem;overflow-x:auto;padding:.5rem 0}
-.recent-card{flex:0 0 130px;border:1px solid var(--border);border-radius:14px;overflow:hidden;text-decoration:none;color:var(--text);background:var(--surface)}
-.recent-card img{width:100%;aspect-ratio:1;object-fit:cover}
-.recent-card span{display:block;padding:.4rem .5rem 0;font-size:.72rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.recent-card b{display:block;padding:0 .5rem .5rem;font-size:.72rem;color:var(--primary-dark)}
+/* ===== CART (नयाँ) ===== */
+.cart-list{padding:.6rem .8rem;display:flex;flex-direction:column;gap:.6rem;overflow:auto;flex:1}
+.cart-row{display:flex;align-items:center;gap:.5rem;background:#fff;border:1px solid #eee;border-radius:12px;padding:.55rem .6rem}
+body.dark .cart-row{background:#221f1e;border-color:#3a3533}
+.cart-info{flex:1;display:flex;flex-direction:column;font-size:.85rem;min-width:0}
+.cart-info strong{white-space:normal;word-break:break-word}
+.cart-info span{opacity:.7;font-size:.75rem}
+.cart-qty{display:flex;align-items:center;gap:.4rem}
+.cart-qty button{width:26px;height:26px;border-radius:8px;border:1px solid #ccc;background:transparent;font-weight:700;cursor:pointer}
+body.dark .cart-qty button{border-color:#555;color:#eee}
+.cart-rm{border:none;background:transparent;opacity:.6;cursor:pointer;font-size:.9rem}
+.cart-foot{padding:.8rem;border-top:1px solid #eee;display:flex;flex-direction:column;gap:.6rem}
+body.dark .cart-foot{border-top-color:#3a3533}
+.cart-total{font-weight:800}
+.pm-size.sel{outline:2px solid #b3232f;border-radius:10px}
+/* ===== INFO PAGES: about / proprietor (नयाँ) ===== */
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.2rem;margin:1rem 0 2rem;display:flex;flex-direction:column;gap:.8rem}
+.info-card .prop-img.big{width:84px;height:84px}
+.info-card .prop-btns{display:flex;gap:.6rem;flex-wrap:wrap}
