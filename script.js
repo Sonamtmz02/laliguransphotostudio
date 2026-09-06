@@ -429,11 +429,6 @@ async function showProductPage(slug) {
   $("ppCat").textContent = cat ? cat.name.toUpperCase() : "SERVICE";
   $("ppName").textContent = p.name;
   $("ppDesc").textContent = p.description || "";
-  const oldKw = document.getElementById('ppKwHidden'); if (oldKw) oldKw.remove();
-  if (Array.isArray(p.keywords) && p.keywords.length) {
-    const kw = document.createElement('div'); kw.id = 'ppKwHidden'; kw.style.cssText = 'position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none'; kw.setAttribute('aria-hidden', 'true'); kw.textContent = 'Related: ' + p.keywords.join(', ');
-    const desc = $("ppDesc"); if (desc && desc.parentNode) desc.parentNode.insertBefore(kw, desc.nextSibling);
-  }
   $("ppSizes").innerHTML = (p.sizeIds||[]).length ? `<p class="eyebrow">AVAILABLE SIZES (tap to select)</p>` + p.sizeIds.map(id => { const s = (state.sizes||[]).find(x => x.id === id); if (!s) return ""; return `<div class="pm-size" data-size="${id}" style="cursor:pointer"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p, s)}</span></div>`; }).join("") : "";
   $("ppPrice").textContent = fmtMoney(p.price);
   $("ppAvail").innerHTML = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
