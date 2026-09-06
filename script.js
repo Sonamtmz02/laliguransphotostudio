@@ -287,6 +287,7 @@ try {
 const snap = await db.collection("products").where("isActive", "==", true).limit(100).get();
 const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 assignSlugsInPlace(all);
+state._all = all;
 list = all.filter(p => matchesFilters(p));
 } catch (e) { list = null; }
 }
