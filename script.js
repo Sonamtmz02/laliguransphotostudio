@@ -344,6 +344,8 @@ $("drawerName").textContent = name;
   $("dCall").href = phTel;
   $("dWaPhone").textContent = "+" + waNumber();
   setWa($("dWa"), generalWaMsg());
+if (!$("dMail")) { const dc = $("dCall"); if (dc) { const a = document.createElement("a"); a.id = "dMail"; a.style.cssText = "display:flex;align-items:center;gap:.55rem;padding:.6rem .4rem;color:inherit;text-decoration:none;font-weight:600;font-size:.9rem"; a.innerHTML = '<span aria-hidden="true">✉️</span><span id="dMailText"></span>'; dc.parentNode.insertBefore(a, dc.nextSibling); } }
+const dm = $("dMail"); if (dm) { dm.href = "mailto:" + em; const dt = $("dMailText"); if (dt) dt.textContent = em; }
   const mq = s.address || name;
   const embSrc = ((s.mapEmbedCode || "").match(/src=["']([^"']+)["']/) || [])[1] || "";
   const mapSrc = embSrc || ("https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed");
