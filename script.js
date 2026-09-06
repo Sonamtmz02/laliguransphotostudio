@@ -570,7 +570,7 @@ function init() {
   $("backdrop").addEventListener("click", closeDrawers);
   $("themeToggle").addEventListener("click", () => { const next = state.theme === "dark" ? "light" : state.theme === "light" ? "system" : "dark"; applyTheme(next); toast(next === "light" ? "☀️ Light mode" : next === "dark" ? "🌙 Dark mode" : "🖥️ System mode"); });
   $("searchToggle").addEventListener("click", () => { if ($("landingMain").hidden) { location.href = "/"; return; } const b = $("searchBar"); b.hidden = !b.hidden; if (!b.hidden) $("searchInput").focus(); });
-  $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; loadProductsPage(true); } else { await searchAll(q); } }, 300));
+  $("searchInput").addEventListener("input", debounce(async e => { const q = e.target.value.trim(); state.search = q; if (!q) { state.searchMode = false; renderSearchDrop([], ""); loadProductsPage(true); } else { await searchAll(q); } }, 300));
 
   $("aboutBtn").addEventListener("click", () => { history.pushState({}, "", "/about"); route(); });
   $("aboutClose").addEventListener("click", () => { $("aboutModal").hidden = true; });
