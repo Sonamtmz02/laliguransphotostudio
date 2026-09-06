@@ -291,7 +291,7 @@ state._all = all;
 list = all.filter(p => matchesFilters(p));
 } catch (e) { list = null; }
 }
-if (!list) { list = (state.products || []).filter(p => matchesFilters(p)); }
+if (!list) { list = (state._all || state.products || []).filter(p => matchesFilters(p)); }
 state.products = list;
 $("productGrid").innerHTML = list.length ? list.map(productCard).join("") : `<p class="muted" style="grid-column:1/-1;text-align:center">❀ "${esc(q)}" को लागि कुनै product भेटिएन। "Birthday Frame" वा "Frame" खोज्नुहोस्।</p>`;
 renderSearchDrop(list, q);
