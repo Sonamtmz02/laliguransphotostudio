@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v13.2 (store info admin-driven + all previous fixes) */
+/* LALIGURANS USER PANEL - v13.3 (exact-time status flip + 12h display + DEFAULT_HOURS fallback) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -71,7 +71,7 @@ function assignSlugsInPlace(list) {
 function setSeo(o) { document.title = o.title; const set = (sel,at,v) => { const el = document.querySelector(sel); if (el) el.setAttribute(at,v); }; set("#metaDesc","content",o.desc); set("#ogTitle","content",o.title); set("#ogDesc","content",o.desc); if (o.image) set("#ogImage","content",o.image); set("#ogType","content",o.type||"website"); set("#ogUrl","content",o.url); set("#canonical","href",o.url); set('meta[name="twitter:card"]',"content",o.image?"summary_large_image":"summary"); set('meta[name="twitter:title"]',"content",o.title); set('meta[name="twitter:description"]',"content",o.desc); if (o.image) set('meta[name="twitter:image"]',"content",o.image); }
 function setJsonLd(obj) { const el = $("jsonld"); if (el) el.textContent = JSON.stringify(obj); }
 
-/* ===== v13.2 FIX: phone / WhatsApp / email अब admin (storeInfo) बाट ===== */
+/* ===== v13.2: phone / WhatsApp / email admin (storeInfo) बाट ===== */
 function waNumber() {
   const s = state.store || {};
   const raw = String(s.whatsappPhone || s.phone || "").replace(/\D/g, "");
@@ -88,7 +88,6 @@ function storePhoneTel() {
   if (raw.startsWith("+")) return "tel:" + raw;
   return "tel:+" + (raw.startsWith("977") ? raw : "977" + raw);
 }
-
 function waHrefMsg(msg, digits) { return "https://wa.me/" + digits + "?text=" + encodeURIComponent(msg); }
 function waOpen(msg, digits) { const phone = digits || waNumber(); const enc = encodeURIComponent(msg); const web = "https://wa.me/" + phone + "?text=" + enc; const ua = navigator.userAgent || ""; if (/android/i.test(ua)) { window.location.href = "intent://wa.me/" + phone + "?text=" + enc + "#Intent;scheme=https;package=com.whatsapp;S.browser_fallback_url=" + encodeURIComponent(web) + ";end"; } else if (/iphone|ipad|ipod/i.test(ua)) { window.location.href = web; } else { window.open(web, "_blank", "noopener"); } }
 function setWa(el, msg, digits) { if (!el) return; el.href = waHrefMsg(msg, digits || waNumber()); el.dataset.waMsg = msg; if (digits) el.dataset.waDigits = digits; el.hidden = false; }
@@ -182,7 +181,33 @@ function renderCart() {
 function ktParts() { return new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Kathmandu", year: "numeric", month: "2-digit", day: "2-digit", weekday: "long", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date()); }
 function ktNow() { const g = t => ktParts().find(p => p.type === t).value; return { day: g("weekday").toLowerCase(), hour: parseInt(g("hour"),10)%24, min: (parseInt(g("hour"),10)%24)*60 + parseInt(g("minute"),10) }; }
 function toMin(v) { if (!v) return 0; const [h,m] = String(v).split(":").map(Number); return (h||0)*60+(m||0); }
-function bizStatus() { const d = state.hours; if (!d) return { open: null, text: "" }; if (d.override && d.override.enabled) { const open = d.override.status === "open"; const reason = (d.override.reason || "").trim(); return { open, text: open ? ("Open" + (reason ? " · " + reason : "")) : ("Closed" + (reason ? " · " + reason : "")) }; } const now = ktNow(), days = d.days || {}, today = days[now.day]; if (today && today.open) { if (now.min >= toMin(today.opens) && now.min < toMin(today.closes)) return { open: true, text: "Open now · closes " + fmt12(today.closes) }; if (now.min < toMin(today.opens)) return { open: false, text: "Closed · opens today " + fmt12(today.opens) }; } const order = DAYS.map(x => x[0]), idx = order.indexOf(now.day); for (let i=1;i<=7;i++){ const k = order[(idx+i)%7]; if (days[k] && days[k].open) return { open: false, text: "Closed · opens " + DAYS.find(x=>x[0]===k)[1] + " " + fmt12(days[k].opens) }; } return { open: false, text: "Closed" }; }
+
+/* ===== v13.3: DEFAULT_HOURS fallback (गणना 24h मा, display 12h मा) ===== */
+const DEFAULT_HOURS = { days: {
+  sunday:{open:true,opens:"09:00",closes:"18:00"},
+  monday:{open:true,opens:"09:00",closes:"18:00"},
+  tuesday:{open:true,opens:"09:00",closes:"18:00"},
+  wednesday:{open:true,opens:"09:00",closes:"18:00"},
+  thursday:{open:true,opens:"09:00",closes:"18:00"},
+  friday:{open:true,opens:"09:00",closes:"18:00"},
+  saturday:{open:false,opens:"09:00",closes:"18:00"}
+}};
+function bizStatus() {
+  const src = (state.hours && state.hours.days) ? state.hours : DEFAULT_HOURS;
+  if (src.override && src.override.enabled) {
+    const open = src.override.status === "open";
+    const reason = (src.override.reason || "").trim();
+    return { open, text: open ? ("Open" + (reason ? " · " + reason : "")) : ("Closed" + (reason ? " · " + reason : "")) };
+  }
+  const now = ktNow(), days = src.days, today = days[now.day];
+  if (today && today.open) {
+    if (now.min >= toMin(today.opens) && now.min < toMin(today.closes)) return { open: true, text: "Open now · closes " + fmt12(today.closes) };
+    if (now.min < toMin(today.opens)) return { open: false, text: "Closed · opens " + fmt12(today.opens) };
+  }
+  const order = DAYS.map(x => x[0]), idx = order.indexOf(now.day);
+  for (let i=1;i<=7;i++){ const k = order[(idx+i)%7]; if (days[k] && days[k].open) return { open: false, text: "Closed · opens " + DAYS.find(x=>x[0]===k)[1] + " " + fmt12(days[k].opens) }; }
+  return { open: false, text: "Closed" };
+}
 function refreshBadge() { const s = bizStatus(); $("hoursStatus").innerHTML = s.open === null ? "" : (s.open ? `<span class="badge green">● ${esc(s.text)}</span>` : `<span class="badge red">● ${esc(s.text)}</span>`); }
 function greeting() { const h = ktNow().hour; if (h < 12) return "GOOD MORNING, WELCOME!"; if (h < 17) return "GOOD AFTERNOON, WELCOME!"; return "GOOD EVENING, WELCOME!"; }
 function updateNow() { const g = t => ktParts().find(p => p.type === t).value; const ce = { y: +g("year"), m: +g("month"), d: +g("day") }; const bs = toBS(ce); const wd = NEP_DAYS[["sun","mon","tue","wed","thu","fri","sat"].indexOf(g("weekday").toLowerCase().slice(0,3))]; let h = +g("hour") % 24; const ap = h < 12 ? "AM" : "PM"; let hh = h % 12; if (hh === 0) hh = 12; const dateStr = bs ? `${wd}, ${np(bs.d)} ${NEP_MONTHS[bs.m-1]} ${np(bs.y)}` : `${wd}, ${np(ce.d)}/${np(ce.m)}/${np(ce.y)}`; $("nowChip").textContent = `${dateStr} · ${np(hh)}:${np(g("minute"))} ${ap}`; }
@@ -296,7 +321,7 @@ function openProductModal(p) { state.pmId = p.id; const img = imgUrl(p.imageUrl)
 function renderGallery() { const el = $("galleryGrid"); if (!state.gallery) { el.innerHTML = `<div class="g-item"><div class="sk-img" style="aspect-ratio:1"></div></div>`.repeat(4); return; } state.lbList = []; const html = state.gallery.map(g => { const img = imgUrl(g.imageUrl); if (!img) return ""; const idx = state.lbList.push({ img, title: g.title || "" }) - 1; return `<div class="g-item" data-idx="${idx}"><img src="${img}" alt="${esc(g.title||"gallery")}" loading="lazy" decoding="async"></div>`; }).join(""); el.innerHTML = html || `<p class="muted">❀ Gallery coming soon.</p>`; }
 function openLightbox(i) { state.lbIndex = i; const it = state.lbList[i]; if (!it) return; $("lightboxImg").src = it.img; $("lightboxImg").alt = it.title || "Gallery photo"; $("lightboxCount").textContent = `${i+1} / ${state.lbList.length}`; $("lightbox").hidden = false; }
 function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbIndex + d + state.lbList.length) % state.lbList.length; openLightbox(state.lbIndex); }
-function renderHours() { const now = ktNow(); const days = (state.hours && state.hours.days) || {}; $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join(""); refreshBadge(); }
+function renderHours() { const now = ktNow(); const src = (state.hours && state.hours.days) ? state.hours : DEFAULT_HOURS; const days = src.days || {}; $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join(""); refreshBadge(); }
 function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.href = href; el.hidden = false; } else el.hidden = true; }
 
 /* ===== renderStore (v13.2) — phone/email/WhatsApp/map सबै admin बाट ===== */
@@ -610,6 +635,8 @@ function init() {
   if (!state._ssr) loadProductsPage(true);
   route();
   if ("IntersectionObserver" in window) { const ss = $("scrollSentinel"); if (ss) new IntersectionObserver(en => { if (en[0].isIntersecting) loadProductsPage(false); }, { rootMargin: "300px" }).observe(ss); }
-  setInterval(() => { refreshBadge(); $("greetBadge").textContent = greeting(); }, 60000);
+  /* v13.3: exact-time status flip — हर 1 सेकेन्डमा check, 9:00/6:00 को ठीक समयमा flip */
+  setInterval(() => { refreshBadge(); }, 1000);
+  setInterval(() => { $("greetBadge").textContent = greeting(); }, 30000);
 }
 document.addEventListener("DOMContentLoaded", init);
