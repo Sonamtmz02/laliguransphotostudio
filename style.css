@@ -318,3 +318,12 @@ body.dark .cart-foot{border-top-color:#3a3533}
   .p-grid{grid-template-columns:repeat(2,1fr)}
   .col-grid{grid-template-columns:repeat(3,1fr)}
 }
+
+/* ===== name overflow fix (topbar + drawer) ===== */
+.brand{min-width:0;flex:1}
+.brand-txt{min-width:0;flex:1}
+.brand-txt strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.drawer-head{gap:.5rem}
+.drawer-brand{flex:1;min-width:0}
+.drawer-brand .brand-txt{min-width:0}
+.drawer-brand .brand-txt strong{white-space:normal;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
