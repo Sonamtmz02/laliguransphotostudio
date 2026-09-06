@@ -582,7 +582,7 @@ function init() {
   $("svcGrid").addEventListener("click", e => { const b = e.target.closest(".svc-card"); if (!b) return; document.querySelectorAll(".svc-card").forEach(x => x.classList.toggle("active", x === b)); const s = SERVICES[+b.dataset.svc]; $("svcName").textContent = s.t; setWa($("svcWa"), `Namaste ${storeName()}! I would like to know more about: ${s.t}`); $("svcActions").hidden = false; });
 
   $("catChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; state.catFilter = b.dataset.cat; state.search = ""; $("searchInput").value = ""; renderChips(); renderDrawer(); state.searchMode = false; loadProductsPage(true); });
-  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; state.catFilter = b.dataset.col; renderChips(); renderDrawer(); loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
+  $("colGrid").addEventListener("click", e => { const b = e.target.closest(".col-card"); if (!b) return; e.preventDefault(); e.stopPropagation(); state.catFilter = b.dataset.col; renderChips(); renderDrawer(); loadProductsPage(true); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("drawerCats").addEventListener("click", e => { const b = e.target.closest(".d-cat"); if (!b) return; state.catFilter = b.dataset.cat; renderChips(); renderDrawer(); loadProductsPage(true); closeDrawers(); document.getElementById("services").scrollIntoView({ behavior: "smooth" }); });
   $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
 
