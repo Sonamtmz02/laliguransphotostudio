@@ -73,12 +73,12 @@ function setJsonLd(obj) { const el = $("jsonld"); if (el) el.textContent = JSON.
 
 /* ===== v13.2: phone / WhatsApp / email admin (storeInfo) बाट ===== */
 function waNumber() {
-  const s = state.store || {};
-  const raw = String(s.whatsappPhone || s.phone || "").replace(/\D/g, "");
-  if (!raw) return CONTACT.waDigits;
-  if (raw.startsWith("977")) return raw;
-  if (raw.length === 10 && raw.startsWith("9")) return "977" + raw;
-  return CONTACT.waDigits;
+const s = state.store || {};
+const raw = String(s.whatsappPhone || "").replace(/\D/g, "");
+if (!raw) return CONTACT.waDigits;
+if (raw.startsWith("977")) return raw;
+if (raw.length === 10 && raw.startsWith("9")) return "977" + raw;
+return CONTACT.waDigits;
 }
 function storePhoneDisplay() { const s = state.store || {}; return (s.phone || "").trim() || CONTACT.callDisplay; }
 function storePhoneTel() {
