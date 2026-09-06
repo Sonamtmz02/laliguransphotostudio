@@ -1,4 +1,4 @@
-/* LALIGURANS USER PANEL - v13.1 (cart + boot + info pages + all fixes + shortName) */
+/* LALIGURANS USER PANEL - v13.2 (store info admin-driven + all previous fixes) */
 const firebaseConfig = {
   apiKey: "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I",
   authDomain: "laligurans-photo-studio.firebaseapp.com",
@@ -71,7 +71,24 @@ function assignSlugsInPlace(list) {
 function setSeo(o) { document.title = o.title; const set = (sel,at,v) => { const el = document.querySelector(sel); if (el) el.setAttribute(at,v); }; set("#metaDesc","content",o.desc); set("#ogTitle","content",o.title); set("#ogDesc","content",o.desc); if (o.image) set("#ogImage","content",o.image); set("#ogType","content",o.type||"website"); set("#ogUrl","content",o.url); set("#canonical","href",o.url); set('meta[name="twitter:card"]',"content",o.image?"summary_large_image":"summary"); set('meta[name="twitter:title"]',"content",o.title); set('meta[name="twitter:description"]',"content",o.desc); if (o.image) set('meta[name="twitter:image"]',"content",o.image); }
 function setJsonLd(obj) { const el = $("jsonld"); if (el) el.textContent = JSON.stringify(obj); }
 
-function waNumber() { return CONTACT.waDigits; }
+/* ===== v13.2 FIX: phone / WhatsApp / email अब admin (storeInfo) बाट ===== */
+function waNumber() {
+  const s = state.store || {};
+  const raw = String(s.whatsappPhone || s.phone || "").replace(/\D/g, "");
+  if (!raw) return CONTACT.waDigits;
+  if (raw.startsWith("977")) return raw;
+  if (raw.length === 10 && raw.startsWith("9")) return "977" + raw;
+  return CONTACT.waDigits;
+}
+function storePhoneDisplay() { const s = state.store || {}; return (s.phone || "").trim() || CONTACT.callDisplay; }
+function storePhoneTel() {
+  const s = state.store || {};
+  const raw = String(s.phone || "").replace(/[^\d+]/g, "");
+  if (!raw) return CONTACT.callTel;
+  if (raw.startsWith("+")) return "tel:" + raw;
+  return "tel:+" + (raw.startsWith("977") ? raw : "977" + raw);
+}
+
 function waHrefMsg(msg, digits) { return "https://wa.me/" + digits + "?text=" + encodeURIComponent(msg); }
 function waOpen(msg, digits) { const phone = digits || waNumber(); const enc = encodeURIComponent(msg); const web = "https://wa.me/" + phone + "?text=" + enc; const ua = navigator.userAgent || ""; if (/android/i.test(ua)) { window.location.href = "intent://wa.me/" + phone + "?text=" + enc + "#Intent;scheme=https;package=com.whatsapp;S.browser_fallback_url=" + encodeURIComponent(web) + ";end"; } else if (/iphone|ipad|ipod/i.test(ua)) { window.location.href = web; } else { window.open(web, "_blank", "noopener"); } }
 function setWa(el, msg, digits) { if (!el) return; el.href = waHrefMsg(msg, digits || waNumber()); el.dataset.waMsg = msg; if (digits) el.dataset.waDigits = digits; el.hidden = false; }
@@ -233,13 +250,10 @@ async function searchAll(q) {
 }
 function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
 function sizePriceText(p, s) { const v = (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price != null ? s.price : 0); return v ? fmtMoney(v) : ""; }
-
-/* ===== NEW v13.1: shortName helper — "Lali Guarans Digital Photo Studio" बाट "Photo Studio" काट्छ ===== */
 function shortName(n) {
   const t = (n || "").trim();
   return t.toLowerCase().endsWith("photo studio") ? (t.slice(0, -12).trim() || t) : (t.split(" ")[0] || t);
 }
-
 function productCard(p) {
   const img = imgUrl(p.imageUrl); const fav = state.favs.includes(p.id); const msg = productWaMsg(p); const wa = waHrefMsg(msg, waNumber()); const cat = (state.categories||[]).find(x => x.id === p.categoryId);
   return `<article class="p-card" data-id="${p.id}">
@@ -285,47 +299,47 @@ function lbNav(d) { if (!state.lbList.length) return; state.lbIndex = (state.lbI
 function renderHours() { const now = ktNow(); const days = (state.hours && state.hours.days) || {}; $("hoursTable").innerHTML = DAYS.map(([k, l]) => { const d = days[k]; const closed = !(d && d.open); return `<div class="h-row ${k === now.day ? "today" : ""} ${closed ? "closed" : ""}"><span>${l}</span><span>${closed ? "Closed" : `${fmt12(d.opens)} – ${fmt12(d.closes)}`}</span></div>`; }).join(""); refreshBadge(); }
 function setLink(id, href) { const el = $(id); if (!el) return; if (href) { el.href = href; el.hidden = false; } else el.hidden = true; }
 
-/* ===== renderStore with shortName fix (v13.1) ===== */
+/* ===== renderStore (v13.2) — phone/email/WhatsApp/map सबै admin बाट ===== */
 function renderStore() {
   const s = state.store || {};
   const name = s.name || "Laligurans Photo Studio";
   const tag = s.tagline || DEFAULT_TAG;
   const parts = String(tag).split(",").map(x => x.trim());
-
-  /* shortName: "Lali Guarans Digital Photo Studio" → "Lali Guarans Digital" */
+  const phDisplay = storePhoneDisplay();
+  const phTel = storePhoneTel();
+  const em = (s.email || "").trim() || CONTACT.email;
   $("brandName").textContent = shortName(name);
   $("drawerName").textContent = shortName(name);
-
   $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`;
   $("tagLine1").textContent = parts[0] || tag;
   $("tagLine2").textContent = parts[1] || "";
   $("heroSub").textContent = s.about || "Premium photography, prints and frames.";
   $("greetBadge").textContent = greeting();
-  $("dPhone").textContent = CONTACT.callDisplay;
-  $("dCall").href = CONTACT.callTel;
-  $("dWaPhone").textContent = CONTACT.waDisplay;
+  $("dPhone").textContent = phDisplay;
+  $("dCall").href = phTel;
+  $("dWaPhone").textContent = "+" + waNumber();
   setWa($("dWa"), generalWaMsg());
-  setLink("cMap", safeUrl(s.mapUrl));
-
+  const mq = s.address || name;
+  const embSrc = ((s.mapEmbedCode || "").match(/src=["']([^"']+)["']/) || [])[1] || "";
+  const mapSrc = embSrc || ("https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed");
+  setLink("cMap", safeUrl(s.mapUrl) || ("https://www.google.com/maps?q=" + encodeURIComponent(mq)));
   $("footName").textContent = shortName(name);
-
   $("footTag").textContent = tag;
   $("footAddr").textContent = s.address || "";
-  $("footPhone").href = CONTACT.callTel;
-  $("footPhone").textContent = CONTACT.callDisplay;
+  $("footPhone").href = phTel;
+  $("footPhone").textContent = phDisplay;
   setWa($("footWa"), generalWaMsg());
-  $("footMail").href = "mailto:" + CONTACT.email;
-  $("footMail").textContent = CONTACT.email;
+  $("footMail").href = "mailto:" + em;
+  $("footMail").textContent = em;
   setLink("sFb", safeUrl(s.facebook));
   setLink("sIg", safeUrl(s.instagram));
   setLink("sTk", safeUrl(s.tiktok));
   $("footCopy").textContent = `© ${new Date().getFullYear()} ${name}. All rights reserved.`;
-  const mq = s.address || name;
-  if (mq !== state.mapQ) { state.mapQ = mq; $("mapFrame").src = "https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed"; }
+  if (mapSrc !== state.mapQ) { state.mapQ = mapSrc; $("mapFrame").src = mapSrc; }
   if (location.pathname === "/" || location.pathname === "") {
     const homeUrl = location.origin + "/";
     setSeo({ title: name + " — Photo Studio", desc: tag, image: location.origin + "/logo.png", url: homeUrl });
-    setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: CONTACT.callDisplay, email: CONTACT.email, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
+    setJsonLd({ "@context":"https://schema.org","@type":"LocalBusiness", name, slogan: tag, telephone: phDisplay, email: em, address: s.address || "", sameAs: [safeUrl(s.facebook), safeUrl(s.instagram), safeUrl(s.tiktok)].filter(Boolean) });
   }
 }
 
