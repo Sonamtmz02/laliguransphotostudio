@@ -238,7 +238,8 @@ async function loadProductsPage(reset) {
   if (state.pq.loading) return;
   if (!reset && state.pq.done) return;
   if (reset) { state.products = []; state.pq = { last: null, done: false, loading: false }; $("productGrid").innerHTML = ""; }
-  state.pq.loading = true; sentinel("loading");
+if (!db) { const list = (state._all || []).filter(p => p.isActive && matchesFilters(p)); state.products = list; $("productGrid").innerHTML = list.length ? list.map(productCard).join("") : `<p class="muted" style="text-align:center;grid-column:1/-1">❀ कुनै product भेटिएन</p>`; sentinel(list.length ? "" : "empty"); renderCollections(); renderHeroVisual(); return; }
+state.pq.loading = true; sentinel("loading");
   try {
     let q = db.collection("products").limit(PAGE_SIZE);
     if (state.pq.last) q = q.startAfter(state.pq.last);
