@@ -601,7 +601,7 @@ function init() {
   $("shareModal").addEventListener("click", e => { if (e.target === $("shareModal")) $("shareModal").hidden = true; });
   $("shNative").addEventListener("click", () => { if (navigator.share && state.share) navigator.share({ title: state.share.title, text: state.share.msg, url: state.share.url }).catch(() => {}); });
   $("shCopy").addEventListener("click", async () => { if (!state.share) return; try { await navigator.clipboard.writeText(state.share.url); } catch (e) { const t = document.createElement("textarea"); t.value = state.share.url; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); } toast("Product link copied!"); });
-  $("shWa").addEventListener("click", () => { if (state.share) waOpen(state.share.msg + "\n" + state.share.url); });
+  $("shWa").addEventListener("click", () => { if (state.share) window.open("https://wa.me/?text=" + encodeURIComponent(state.share.msg + "\n" + state.share.url), "_blank", "noopener"); });
   $("shFb").addEventListener("click", async () => {
     if (!state.share) return;
     if (navigator.share) {
