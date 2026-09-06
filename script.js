@@ -470,7 +470,7 @@ function route() {
   else showLanding();
 }
 
-function openShare(p) { state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` }; $("shareTitle").textContent = p.name; $("shNative").hidden = !navigator.share; $("shareModal").hidden = false; }
+function openShare(p) { state.share = { url: location.origin + "/product/" + p.slug, title: `${p.name} | Laligurans Photo Studio`, msg: `${storeName()}\n\n${p.name}\nPrice: ${fmtMoney(p.price)}\n\nView Product:` }; if (navigator.share) { navigator.share({ title: state.share.title, text: state.share.msg, url: state.share.url }).catch(() => {}); return; } $("shareTitle").textContent = p.name; $("shNative").hidden = true; $("shareModal").hidden = false; }
 function openDrawer(id) { $(id).classList.add("open"); $("backdrop").hidden = false; }
 function closeDrawers() { $("drawer").classList.remove("open"); $("favDrawer").classList.remove("open"); $("cartDrawer").classList.remove("open"); $("backdrop").hidden = true; }
 
