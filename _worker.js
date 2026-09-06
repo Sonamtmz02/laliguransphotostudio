@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v18 - cache invalidation includes storeInfo + businessHours */
+/* LALIGURANS edge router v19 - AUTO CACHE-BUST (content-hash) + store/hours stamp + security */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -15,10 +15,41 @@ const SEC = {
   "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://laligurans-admin.pages.dev; frame-src https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
 };
 function secHeaders(extra){ return Object.assign({}, SEC, extra || {}); }
+
+/* ===== v19: AUTO CACHE-BUST ===== */
+async function assetVersion(env, request, path){
+  try{
+    const base = new URL(request.url).origin;
+    const key = new Request(base + "/__ver__" + path);
+    const hit = await caches.default.match(key);
+    if (hit) return await hit.text();
+    const u = new URL(path, base);
+    const r = await env.ASSETS.fetch(new Request(u.toString()));
+    if (!r.ok) return "1";
+    const buf = await r.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    const hex = Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("").slice(0,10);
+    await caches.default.put(key, new Response(hex, {headers:{"cache-control":"public, max-age=60"}}));
+    return hex;
+  }catch(e){ return "1"; }
+}
+async function bustAssets(env, request, html){
+  const [jsV, cssV] = await Promise.all([
+    assetVersion(env, request, "/script.js"),
+    assetVersion(env, request, "/style.css")
+  ]);
+  html = html.replace(/(["'])\/script\.js(\?[^"']*)?/g, "$1/script.js?v=" + jsV);
+  html = html.replace(/(["'])\/style\.css(\?[^"']*)?/g, "$1/style.css?v=" + cssV);
+  return html;
+}
 async function assetsWithSec(request, env){
+  const url = new URL(request.url);
   const r = await env.ASSETS.fetch(request);
   const nr = new Response(r.body, r);
   for (const k in SEC) if (!nr.headers.has(k)) nr.headers.set(k, SEC[k]);
+  if ((url.pathname === "/script.js" || url.pathname === "/style.css") && url.searchParams.has("v")) {
+    nr.headers.set("cache-control", "public, max-age=31536000, immutable");
+  }
   return nr;
 }
 
@@ -37,6 +68,12 @@ function injectCanonical(html,url){
   html=html.replace(/<link[^>]*id=["']canonical["'][^>]*>/,"");
   if(!/rel=["']canonical["']/.test(html)){html=html.replace("</head>",`<link rel="canonical" href="${url}" />\n</head>`);}
   return html;
+}
+async function shellHtml(env,request){
+  const u=new URL("/index.html",request.url);
+  const r=await env.ASSETS.fetch(new Request(u.toString()));
+  let html=await r.text();
+  return await bustAssets(env,request,html);
 }
 
 function ssrHomeLinks(payload){
@@ -58,7 +95,6 @@ async function fetchStamp(coll){
     return (d&&d.fields&&d.fields.updatedAt&&(d.fields.updatedAt.timestampValue||""))||"";
   }catch(e){return "";}
 }
-/* ===== v18 FIX: single-doc stamp (storeInfo / businessHours) ===== */
 async function fetchDocStamp(ref){
   try{
     const u=`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${ref}?mask.fieldPaths=updatedAt&key=${API_KEY}`;
@@ -95,7 +131,6 @@ const OUT_HEADERS={"content-type":"text/html;charset=utf-8","cache-control":"pub
 
 function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"})});}
 function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url}};return [prod,crumbs];}
-async function shellHtml(env,request){const u=new URL("/index.html",request.url);const r=await env.ASSETS.fetch(new Request(u.toString()));return await r.text();}
 async function handleImg(path){
   const key=path.replace(/^\/img\//,"");
   if(!/^(products|gallery)\/[A-Za-z0-9-]+\/\d+-[a-f0-9]{6,12}\.(jpg|jpeg|png|webp)$/i.test(key))return new Response("bad key",{status:400,headers:secHeaders({})});
@@ -200,6 +235,49 @@ async function handleHome(request,env,ctx){
     return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-boot":"error:"+String(e.message||e)})});
   }
 }
+
+function buildProductBody(p,cat,img,origin){
+  const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
+  const catSlug = cat ? slugify(cat.name) : "";
+  const catLabel = cat ? esc(cat.name) : "Products";
+  const name = esc(p.name);
+  const desc = esc(p.description || "");
+  const price = fmtMoney(p.price || 0);
+  const availHtml = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
+  const waMsg = `Namaste Laligurans Photo Studio!\nI want to order: ${p.name}\nPrice: ${price}\nProduct: ${origin}/product/${p.slug}`;
+  const waHref = "https://wa.me/" + WA_DIGITS + "?text=" + encodeURIComponent(waMsg);
+  const sizes = (p.sizeIds || []).map(id => {
+    const s = (p._sizes || []).find(x => x.id === id);
+    if (!s) return "";
+    return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p,s)}</span></div>`;
+  }).filter(Boolean).join("");
+  const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
+  const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
+    ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
+    : "";
+  return `<div class="wrap">
+    <a href="/" class="pp-back">‹ Back to Home</a>
+    <div class="pp-grid">
+      <div class="pp-media">${img ? `<img id="ppImg" src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" fetchpriority="high" />` : `<img id="ppImg" alt="" />`}</div>
+      <div class="pp-info">
+        <p class="p-cat" id="ppCat">${catName}</p>
+        <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/category/${escAttr(catSlug)}">${catLabel}</a> › <span>${name}</span></nav>
+        <h1 id="ppName" class="pp-name">${name}</h1>
+        <p id="ppDesc" class="pp-desc">${desc}</p>
+        ${kwHtml}
+        <div id="ppSizes" class="pm-sizes">${sizesHtml}</div>
+        <p id="ppPrice" class="pp-price">${price}</p>
+        <p id="ppAvail">${availHtml}</p>
+        <div class="pp-actions">
+          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
+          <a id="ppWa" class="p-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">Enquire</a>
+        </div>
+      </div>
+    </div>
+    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
+  </div>`;
+}
 async function handleProduct(request,env,ctx,path){
   const slug=decodeURIComponent(path.replace(/^\/product\//,"").replace(/\/$/,""));
   const origin=new URL(request.url).origin;
@@ -244,48 +322,6 @@ async function handleProduct(request,env,ctx,path){
   }catch(e){
     return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)})});
   }
-}
-function buildProductBody(p,cat,img,origin){
-  const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
-  const catSlug = cat ? slugify(cat.name) : "";
-  const catLabel = cat ? esc(cat.name) : "Products";
-  const name = esc(p.name);
-  const desc = esc(p.description || "");
-  const price = fmtMoney(p.price || 0);
-  const availHtml = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
-  const waMsg = `Namaste Laligurans Photo Studio!\nI want to order: ${p.name}\nPrice: ${price}\nProduct: ${origin}/product/${p.slug}`;
-  const waHref = "https://wa.me/" + WA_DIGITS + "?text=" + encodeURIComponent(waMsg);
-  const sizes = (p.sizeIds || []).map(id => {
-    const s = (p._sizes || []).find(x => x.id === id);
-    if (!s) return "";
-    return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p,s)}</span></div>`;
-  }).filter(Boolean).join("");
-  const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
-  const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
-    ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
-    : "";
-  return `<div class="wrap">
-    <a href="/" class="pp-back">‹ Back to Home</a>
-    <div class="pp-grid">
-      <div class="pp-media">${img ? `<img id="ppImg" src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" fetchpriority="high" />` : `<img id="ppImg" alt="" />`}</div>
-      <div class="pp-info">
-        <p class="p-cat" id="ppCat">${catName}</p>
-        <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/category/${escAttr(catSlug)}">${catLabel}</a> › <span>${name}</span></nav>
-        <h1 id="ppName" class="pp-name">${name}</h1>
-        <p id="ppDesc" class="pp-desc">${desc}</p>
-        ${kwHtml}
-        <div id="ppSizes" class="pm-sizes">${sizesHtml}</div>
-        <p id="ppPrice" class="pp-price">${price}</p>
-        <p id="ppAvail">${availHtml}</p>
-        <div class="pp-actions">
-          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
-          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
-          <a id="ppWa" class="p-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">Enquire</a>
-        </div>
-      </div>
-    </div>
-    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
-  </div>`;
 }
 async function handleCategory(request,env,ctx,path){
   const slug=decodeURIComponent(path.replace(/^\/category\//,"").replace(/\/$/,""));
