@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v19 - AUTO CACHE-BUST (content-hash) + store/hours stamp + security */
+/* LALIGURANS edge router v20 - SEO: crawlable category links, home canonical/OG, ItemList+Breadcrumb schema, hidden-text removed */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -83,8 +83,12 @@ function ssrHomeLinks(payload){
     return `<article class="p-card"><div class="p-media">${img?`<img src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" loading="lazy" decoding="async">`:`<div class="p-noimg"></div>`}</div><div class="p-body"><strong class="p-name">${esc(p.name)}</strong><div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span></div><a class="p-detail" href="/product/${escAttr(p.slug)}">View Details ›</a></div></article>`;
   }).join("");
 }
+/* v20 FIX: category cards अब क्रल गर्न मिल्ने <a> लिंक */
 function ssrColLinks(payload){
-  return payload.categories.map(c=>`<button class="col-card"><span class="col-name">${esc(c.name)}</span></button>`).join("");
+  return payload.categories.map(c=>{
+    const sl=slugify(c.name);
+    return `<a class="col-card" data-col="${escAttr(c.id)}" href="/category/${escAttr(sl)}" style="color:inherit;text-decoration:none"><span class="col-name">${esc(c.name)}</span></a>`;
+  }).join("");
 }
 
 async function fetchStamp(coll){
@@ -129,8 +133,12 @@ async function htmlCachePut(request,key,stamp,html){
 }
 const OUT_HEADERS={"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5, stale-while-revalidate=30"};
 
-function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"})});}
-function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url}};return [prod,crumbs];}
+/* v20 FIX: 404 पेजमा canonical */
+function notFound(origin){return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><link rel="canonical" href="${origin}/" /><title>Product Not Found | Laligurans Photo Studio</title><style>body{font-family:sans-serif;background:#faf6ef;color:#221f1e;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#b3232f}</style></head><body><div><h1>❀ Product Not Found</h1><p>यो product उपलब्ध छैन वा हटाइएको छ।</p><p><a href="/">Back to Home</a> · <a href="/#services">Explore Products</a></p></div></body></html>`,{status:404,headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"})});}
+
+/* v20 FIX: seller थपियो; rating केवल वास्तविक data भएमा मात्र (गुगल नीति अनुसार) */
+function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url,"seller":{"@type":"Organization","name":"Laligurans Photo Studio"}}};if(Number(p.ratingValue)>0&&Number(p.reviewCount)>0){prod.aggregateRating={"@type":"AggregateRating","ratingValue":Number(p.ratingValue),"reviewCount":Number(p.reviewCount),"bestRating":"5","worstRating":"1"};}return [prod,crumbs];}
+
 async function handleImg(path){
   const key=path.replace(/^\/img\//,"");
   if(!/^(products|gallery)\/[A-Za-z0-9-]+\/\d+-[a-f0-9]{6,12}\.(jpg|jpeg|png|webp)$/i.test(key))return new Response("bad key",{status:400,headers:secHeaders({})});
@@ -170,6 +178,7 @@ async function handleSitemap(request){
   return new Response(xml,{headers:secHeaders({"content-type":"application/xml","cache-control":"public, max-age=60","x-sitemap-debug":debug})});
 }
 
+/* v20 FIX: BreadcrumbList schema थपियो */
 async function handleInfoPage(request,env,ctx,kind){
   const origin=new URL(request.url).origin;
   const stamp=await getStamp();
@@ -190,6 +199,8 @@ async function handleInfoPage(request,env,ctx,kind){
   html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
   html=html.replace(/(<meta property="og:image" id="ogImage" content=")[^"]*(")/,`$1${img}$2`);
   html=injectCanonical(html,url);
+  const bc={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":isAbout?"About Us":"Proprietor","item":url}]};
+  html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify(bc)}</script>\n</head>`);
   html=html.replace('<div id="aboutView" hidden>','<div id="aboutView">');
   html=html.replace('<div id="propView" hidden>','<div id="propView">');
   html=html.split('<main id="landingMain">').join('<main id="landingMain" hidden>');
@@ -197,6 +208,7 @@ async function handleInfoPage(request,env,ctx,kind){
   return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"}))});
 }
 
+/* v20 FIX: home को og:url / og:image / canonical स्पष्ट सेट */
 async function handleHome(request,env,ctx){
   const origin=new URL(request.url).origin;
   const stamp=await getStamp();
@@ -225,9 +237,12 @@ async function handleHome(request,env,ctx){
     let html=shell;
     const heroImg=(payload.gallery[0]&&payload.gallery[0].imageUrl)||(payload.products[0]&&payload.products[0].imageUrl)||"";
     if(heroImg)html=html.replace("</head>",`<link rel="preload" as="image" href="${escAttr(heroImg)}" fetchpriority="high">\n</head>`);
+    html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${origin+"/"}$2`);
+    html=html.replace(/(<meta property="og:image" id="ogImage" content=")[^"]*(")/,`$1${origin+"/logo.png"}$2`);
+    html=injectCanonical(html,origin+"/");
     html=html.replace('<div id="productGrid" class="p-grid"></div>','<div id="productGrid" class="p-grid">'+ssrHomeLinks(payload)+'</div>');
     html=html.replace('<div id="colGrid" class="col-grid"></div>','<div id="colGrid" class="col-grid">'+ssrColLinks(payload)+'</div>');
-    const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"\\u003c")}</script>\n</body>`;
+    const boot=`<script id="ssrBoot" type="application/json">${JSON.stringify(payload).replace(/</g,"u003c")}</script>\n</body>`;
     html=html.replace("</body>",boot);
     ctx.waitUntil(htmlCachePut(request,"home",stamp,html));
     return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-boot":"ok"}))});
@@ -236,6 +251,7 @@ async function handleHome(request,env,ctx){
   }
 }
 
+/* v20 FIX: ppKwHidden (hidden text) हटाइयो */
 function buildProductBody(p,cat,img,origin){
   const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
   const catSlug = cat ? slugify(cat.name) : "";
@@ -252,9 +268,6 @@ function buildProductBody(p,cat,img,origin){
     return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p,s)}</span></div>`;
   }).filter(Boolean).join("");
   const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
-  const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
-    ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
-    : "";
   return `<div class="wrap">
     <a href="/" class="pp-back">‹ Back to Home</a>
     <div class="pp-grid">
@@ -264,12 +277,11 @@ function buildProductBody(p,cat,img,origin){
         <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/category/${escAttr(catSlug)}">${catLabel}</a> › <span>${name}</span></nav>
         <h1 id="ppName" class="pp-name">${name}</h1>
         <p id="ppDesc" class="pp-desc">${desc}</p>
-        ${kwHtml}
         <div id="ppSizes" class="pm-sizes">${sizesHtml}</div>
         <p id="ppPrice" class="pp-price">${price}</p>
         <p id="ppAvail">${availHtml}</p>
         <div class="pp-actions">
-          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8l1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
           <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
           <a id="ppWa" class="p-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">Enquire</a>
         </div>
@@ -323,6 +335,8 @@ async function handleProduct(request,env,ctx,path){
     return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)})});
   }
 }
+
+/* v20 FIX: category पेजमा ItemList schema (products को सूची) थपियो */
 async function handleCategory(request,env,ctx,path){
   const slug=decodeURIComponent(path.replace(/^\/category\//,"").replace(/\/$/,""));
   const origin=new URL(request.url).origin;
@@ -331,12 +345,13 @@ async function handleCategory(request,env,ctx,path){
   if(hit)return hit;
   const shell=await shellHtml(env,request);
   try{
-    const cats=(await fetchDocs(PROJECT_ID,API_KEY,"categories")).filter(c=>c.isActive);
-    const c=cats.find(x=>slugify(x.name)===slug);
+    const [cats,prods]=await Promise.all([fetchDocs(PROJECT_ID,API_KEY,"categories"),fetchDocs(PROJECT_ID,API_KEY,"products")]);
+    const c=cats.filter(x=>x.isActive).find(x=>slugify(x.name)===slug);
     if(!c)return new Response(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Category Not Found</title></head><body><h1>404 — Category Not Found</h1><p><a href="/">Back to home</a></p></body></html>`,{status:404,headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=0, s-maxage=5"})});
     const url=origin+"/category/"+slug;
     const title=`${c.name} | Laligurans Photo Studio`;
     const desc=c.description||`Explore ${c.name} from Laligurans Photo Studio, Chautara.`;
+    const catProducts=assignSlugs(prods.filter(p=>p.isActive&&p.categoryId===c.id)).slice(0,30);
     let html=shell;
     html=html.replace(/<title>[^<]*<\/title>/,`<title>${esc(title)}</title>`);
     html=html.replace(/(<meta name="description" id="metaDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
@@ -347,7 +362,9 @@ async function handleCategory(request,env,ctx,path){
     html=html.replace(/(<meta name="twitter:title" id="twTitle" content=")[^"]*(")/,`$1${esc(title)}$2`);
     html=html.replace(/(<meta name="twitter:description" id="twDesc" content=")[^"]*(")/,`$1${esc(desc)}$2`);
     html=injectCanonical(html,url);
-    html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"CollectionPage","name":title,"description":desc,"url":url})}</script>\n</head>`);
+    const colPage={"@context":"https://schema.org","@type":"CollectionPage","name":title,"description":desc,"url":url};
+    const itemList={"@context":"https://schema.org","@type":"ItemList","name":c.name,"url":url,"numberOfItems":catProducts.length,"itemListElement":catProducts.map((p,i)=>({"@type":"ListItem","position":i+1,"name":p.name,"url":origin+"/product/"+p.slug}))};
+    html=html.replace("</head>",`<script type="application/ld+json">${JSON.stringify([colPage,itemList])}</script>\n</head>`);
     ctx.waitUntil(htmlCachePut(request,"c:"+slug,stamp,html));
     return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"}))});
   }catch(e){
