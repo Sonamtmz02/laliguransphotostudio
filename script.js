@@ -26,7 +26,7 @@ const BS = {
  2088:[31,31,32,31,31,30,30,29,30,29,30,30],2089:[31,32,31,32,31,30,30,30,29,29,30,30],
  2090:[31,32,31,32,31,30,30,30,29,30,29,31]
 };
-function toBS(ce) { const anchor = Date.UTC(2023, 3, 14); let diff = Math.round((Date.UTC(ce.y, ce.m - 1, ce.d) - anchor) / 86400000); if (diff < 0) return null; let y = 2080; while (y <= 2090) { const yt = BS[y].reduce((a,b)=>a+b,0); if (diff < yt) break; diff -= yt; y++; } if (y > 2090) return null; let m = 0; while (diff >= BS[y][m]) { diff -= BS[y][m]; m++; } return { y, m: m + 1, d: diff + 1 }; }
+function toBS(ce) { const anchor = Date.UTC(2023, 3, 15); let diff = Math.round((Date.UTC(ce.y, ce.m - 1, ce.d) - anchor) / 86400000); if (diff < 0) return null; let y = 2080; while (y <= 2090) { const yt = BS[y].reduce((a,b)=>a+b,0); if (diff < yt) break; diff -= yt; y++; } if (y > 2090) return null; let m = 0; while (diff >= BS[y][m]) { diff -= BS[y][m]; m++; } return { y, m: m + 1, d: diff + 1 }; }
 const SERVICES = [
   { t: "Passport / ID Photo", d: "Instant passport & ID size photos", ic: `<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M14 9h5M14 13h5M7 16h10"/>` },
   { t: "T-shirt, Cushion, Cup, Metal Print", d: "Custom photo prints on products", ic: `<path d="M16 4l4 3-2 3-2-1v11H8V9L6 10 4 7l4-3 2 1h4z"/>` },
