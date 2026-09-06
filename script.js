@@ -348,7 +348,7 @@ $("drawerName").textContent = name;
   const embSrc = ((s.mapEmbedCode || "").match(/src=["']([^"']+)["']/) || [])[1] || "";
   const mapSrc = embSrc || ("https://www.google.com/maps?q=" + encodeURIComponent(mq) + "&output=embed");
   setLink("cMap", safeUrl(s.mapUrl) || ("https://www.google.com/maps?q=" + encodeURIComponent(mq)));
-  $("footName").textContent = shortName(name);
+  $("footName").textContent = name;;
   $("footTag").textContent = tag;
   $("footAddr").textContent = s.address || "";
   $("footPhone").href = phTel;
