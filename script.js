@@ -587,7 +587,7 @@ function init() {
   $("favList").addEventListener("click", e => { const b = e.target.closest("[data-favgo]"); if (!b) return; closeDrawers(); document.getElementById("services").scrollIntoView(); });
 
   $("ppSizes").addEventListener("click", e => { const b = e.target.closest("[data-size]"); if (!b) return; state.pmSize = state.pmSize === b.dataset.size ? null : b.dataset.size; Array.from($("ppSizes").querySelectorAll(".pm-size")).forEach(x => x.classList.toggle("sel", x.dataset.size === state.pmSize)); });
-  $("ppCart").addEventListener("click", () => { if (state.pmId) addToCart(state.pmId, state.pmSize || null); });
+  const _ppc = $("ppCart"); if (_ppc) _ppc.addEventListener("click", () => { if (state.pmId) addToCart(state.pmId, state.pmSize || null); });
 
   $("productGrid").addEventListener("click", e => { const f = e.target.closest("[data-fav]"); if (f) { toggleFav(f.dataset.fav); return; } if (e.target.closest("[data-share]")) return; if (e.target.closest("[data-cart]")) return; if (e.target.closest("a")) return; const card = e.target.closest(".p-card"); if (card && card.dataset.id) { const p = state.products.find(x => x.id === card.dataset.id); if (p) openProductModal(p); } });
   $("pmClose").addEventListener("click", () => { $("productModal").hidden = true; state.pmId = null; });
