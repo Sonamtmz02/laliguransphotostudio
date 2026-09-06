@@ -520,7 +520,7 @@ function bootFromSSR() {
     if (d.announcements) state.announcements = d.announcements;
     if (d.store) state.store = d.store;
     if (d.hours) state.hours = d.hours;
-    if (Array.isArray(d.products) && d.products.length) { state.products = d.products; state._ssr = true; }
+    if (Array.isArray(d.products) && d.products.length) { state.products = d.products; state._all = d.products.slice(); state._ssr = true; }
     return true;
   } catch (e) { return false; }
 }
