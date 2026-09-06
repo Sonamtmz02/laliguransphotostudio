@@ -262,16 +262,39 @@ async function loadProductsPage(reset) {
   } catch (e) { sentinel("error"); }
   state.pq.loading = false;
 }
+function renderSearchDrop(list, q) {
+let d = $("searchDrop");
+if (!d) {
+d = document.createElement("div"); d.id = "searchDrop";
+d.style.cssText = "position:absolute;left:8px;right:8px;z-index:98;background:#ffffff;color:#221f1e;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.2);max-height:60vh;overflow:auto;display:none";
+document.body.appendChild(d);
+d.addEventListener("click", e => { const a = e.target.closest("a[data-sdrop]"); if (!a) return; e.preventDefault(); e.stopPropagation(); d.style.display = "none"; history.pushState({}, "", a.getAttribute("href")); route(); });
+document.addEventListener("click", e => { if (!e.target.closest("#searchDrop") && !e.target.closest("#searchBar")) d.style.display = "none"; });
+}
+const dk = document.body.classList.contains("dark");
+d.style.background = dk ? "#221f1e" : "#ffffff";
+d.style.color = dk ? "#fff" : "#221f1e";
+const sb = $("searchBar"); if (sb) { const r = sb.getBoundingClientRect(); d.style.top = (r.bottom + window.scrollY + 6) + "px"; }
+if (!q) { d.style.display = "none"; d.innerHTML = ""; return; }
+d.innerHTML = `<p style="margin:0;padding:.5rem .8rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;opacity:.65">❀ ${list.length} RESULT${list.length === 1 ? "" : "S"} — "${esc(q)}"</p>` + (list.length ? list.slice(0, 8).map(p => { const img = imgUrl(p.imageUrl); return `<a href="/product/${p.slug || ""}" data-sdrop="1" style="display:flex;gap:.6rem;align-items:center;padding:.55rem .8rem;color:inherit;text-decoration:none;border-top:1px solid rgba(128,128,128,.18)">${img ? `<img src="${img}" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:8px">` : ""}<span style="flex:1;font-size:.85rem;font-weight:600">${esc(p.name)}</span><span style="font-size:.8rem;opacity:.7">${fmtMoney(p.price)}</span></a>`; }).join("") : `<p style="padding:.6rem .8rem;font-size:.85rem">कुनै product भेटिएन।</p>`);
+d.style.display = "block";
+}
 async function searchAll(q) {
-  state.searchMode = true;
-  try {
-    const snap = await db.collection("products").where("isActive", "==", true).limit(100).get();
-    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    assignSlugsInPlace(all);
-    state.products = all.filter(p => matchesFilters(p));
-    $("productGrid").innerHTML = state.products.length ? state.products.map(productCard).join("") : `<p class="muted" style="grid-column:1/-1;text-align:center">❀ "${esc(q)}" को लागि कुनै product भेटिएन। "Birthday Frame" वा "Frame" खोज्नुहोस्।</p>`;
-  } catch (e) { $("productGrid").innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center">Search load हुन सकेन। <button class="btn-ghost2" onclick="location.reload()">Retry</button></p>`; }
-  sentinel("");
+state.searchMode = true;
+let list = null;
+if (db) {
+try {
+const snap = await db.collection("products").where("isActive", "==", true).limit(100).get();
+const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+assignSlugsInPlace(all);
+list = all.filter(p => matchesFilters(p));
+} catch (e) { list = null; }
+}
+if (!list) { list = (state.products || []).filter(p => matchesFilters(p)); }
+state.products = list;
+$("productGrid").innerHTML = list.length ? list.map(productCard).join("") : `<p class="muted" style="grid-column:1/-1;text-align:center">❀ "${esc(q)}" को लागि कुनै product भेटिएन। "Birthday Frame" वा "Frame" खोज्नुहोस्।</p>`;
+renderSearchDrop(list, q);
+sentinel("");
 }
 function sizePriceFor(p, s) { return (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price || 0); }
 function sizePriceText(p, s) { const v = (p.sizePrices && p.sizePrices[s.id] != null) ? p.sizePrices[s.id] : (s.price != null ? s.price : 0); return v ? fmtMoney(v) : ""; }
