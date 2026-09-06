@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v17 - about/proprietor pages + enhanced sitemap + security + instant cache */
+/* LALIGURANS edge router v18 - cache invalidation includes storeInfo + businessHours */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -43,11 +43,11 @@ function ssrHomeLinks(payload){
   const prods=[...payload.products].sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)||String(a.name||"").localeCompare(String(b.name||""))).slice(0,12);
   return prods.map(p=>{
     const img=p.imageUrl||"";
-    return `<article class="p-card"><div class="p-media">${img?`<img src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" loading="lazy" decoding="async">`:`<div class="p-noimg"></div>`}</div><div class="p-body"><strong class="p-name"><a href="/product/${escAttr(p.slug)}">${esc(p.name)}</a></strong><div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span><a class="p-detail" href="/product/${escAttr(p.slug)}">View Details ›</a></div></div></article>`;
+    return `<article class="p-card"><div class="p-media">${img?`<img src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" loading="lazy" decoding="async">`:`<div class="p-noimg"></div>`}</div><div class="p-body"><strong class="p-name">${esc(p.name)}</strong><div class="p-foot"><span class="p-price">${fmtMoney(p.price)}</span></div><a class="p-detail" href="/product/${escAttr(p.slug)}">View Details ›</a></div></article>`;
   }).join("");
 }
 function ssrColLinks(payload){
-  return payload.categories.map(c=>`<a class="col-card" href="/category/${escAttr(slugify(c.name))}"><span class="col-name">${esc(c.name)}</span></a>`).join("");
+  return payload.categories.map(c=>`<button class="col-card"><span class="col-name">${esc(c.name)}</span></button>`).join("");
 }
 
 async function fetchStamp(coll){
@@ -58,7 +58,24 @@ async function fetchStamp(coll){
     return (d&&d.fields&&d.fields.updatedAt&&(d.fields.updatedAt.timestampValue||""))||"";
   }catch(e){return "";}
 }
-async function getStamp(){const [a,b]=await Promise.all([fetchStamp("products"),fetchStamp("categories")]);return a+"|"+b;}
+/* ===== v18 FIX: single-doc stamp (storeInfo / businessHours) ===== */
+async function fetchDocStamp(ref){
+  try{
+    const u=`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${ref}?mask.fieldPaths=updatedAt&key=${API_KEY}`;
+    const r=await fetch(u);if(!r.ok)return "";
+    const j=await r.json();
+    return (j&&j.fields&&j.fields.updatedAt&&(j.fields.updatedAt.timestampValue||""))||"";
+  }catch(e){return "";}
+}
+async function getStamp(){
+  const [a,b,c,d]=await Promise.all([
+    fetchStamp("products"),
+    fetchStamp("categories"),
+    fetchDocStamp("storeInfo/main"),
+    fetchDocStamp("businessHours/weekly")
+  ]);
+  return a+"|"+b+"|"+c+"|"+d;
+}
 function cacheKeyFor(request,key,stamp){const u=new URL(request.url);return new Request(u.origin+"/__htmlcache/"+encodeURIComponent(key)+"/"+encodeURIComponent(stamp||"none"));}
 async function htmlCacheGet(request,key,stamp){
   try{
@@ -138,7 +155,8 @@ async function handleInfoPage(request,env,ctx,kind){
   html=html.replace(/(<meta property="og:url" id="ogUrl" content=")[^"]*(")/,`$1${url}$2`);
   html=html.replace(/(<meta property="og:image" id="ogImage" content=")[^"]*(")/,`$1${img}$2`);
   html=injectCanonical(html,url);
-  html=html.split('<div id="'+(isAbout?"aboutView":"propView")+'" hidden>').join('<div id="'+(isAbout?"aboutView":"propView")+'">');
+  html=html.replace('<div id="aboutView" hidden>','<div id="aboutView">');
+  html=html.replace('<div id="propView" hidden>','<div id="propView">');
   html=html.split('<main id="landingMain">').join('<main id="landingMain" hidden>');
   ctx.waitUntil(htmlCachePut(request,key,stamp,html));
   return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-seo-debug":"ok"}))});
@@ -179,53 +197,9 @@ async function handleHome(request,env,ctx){
     ctx.waitUntil(htmlCachePut(request,"home",stamp,html));
     return new Response(html,{headers:secHeaders(Object.assign({},OUT_HEADERS,{"x-boot":"ok"}))});
   }catch(e){
-    return new Response(shell,{headers:secHeaders({"content-type":"text/html;charset=utf-8","cache-control":"public, max-age=10","x-boot":"error:"+String(e.message||e)})});
+    return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-boot":"error:"+String(e.message||e)})});
   }
 }
-
-function buildProductBody(p,cat,img,origin){
-  const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
-  const catSlug = cat ? slugify(cat.name) : "";
-  const catLabel = cat ? esc(cat.name) : "Products";
-  const name = esc(p.name);
-  const desc = esc(p.description || "");
-  const price = fmtMoney(p.price || 0);
-  const availHtml = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
-  const waMsg = `Namaste Laligurans Photo Studio!\nI want to order: ${p.name}\nPrice: ${price}\nProduct: ${origin}/product/${p.slug}`;
-  const waHref = "https://wa.me/" + WA_DIGITS + "?text=" + encodeURIComponent(waMsg);
-  const sizes = (p.sizeIds || []).map(id => {
-    const s = (p._sizes || []).find(x => x.id === id);
-    if (!s) return "";
-    return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p,s)}</span></div>`;
-  }).filter(Boolean).join("");
-  const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
-  const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
-    ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
-    : "";
-  return `<div class="wrap">
-    <a href="/" class="pp-back">‹ Back to Home</a>
-    <div class="pp-grid">
-      <div class="pp-media">${img ? `<img id="ppImg" src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" fetchpriority="high" />` : `<img id="ppImg" alt="" />`}</div>
-      <div class="pp-info">
-        <p class="p-cat" id="ppCat">${catName}</p>
-        <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/category/${escAttr(catSlug)}">${catLabel}</a> › <span>${name}</span></nav>
-        <h1 id="ppName" class="pp-name">${name}</h1>
-        <p id="ppDesc" class="pp-desc">${desc}</p>
-        ${kwHtml}
-        <div id="ppSizes" class="pm-sizes">${sizesHtml}</div>
-        <p id="ppPrice" class="pp-price">${price}</p>
-        <p id="ppAvail">${availHtml}</p>
-        <div class="pp-actions">
-          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
-          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
-          <a id="ppWa" class="p-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">Enquire</a>
-        </div>
-      </div>
-    </div>
-    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
-  </div>`;
-}
-
 async function handleProduct(request,env,ctx,path){
   const slug=decodeURIComponent(path.replace(/^\/product\//,"").replace(/\/$/,""));
   const origin=new URL(request.url).origin;
@@ -270,6 +244,48 @@ async function handleProduct(request,env,ctx,path){
   }catch(e){
     return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-seo-debug":"error:"+String(e.message||e)})});
   }
+}
+function buildProductBody(p,cat,img,origin){
+  const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
+  const catSlug = cat ? slugify(cat.name) : "";
+  const catLabel = cat ? esc(cat.name) : "Products";
+  const name = esc(p.name);
+  const desc = esc(p.description || "");
+  const price = fmtMoney(p.price || 0);
+  const availHtml = p.isAvailable === false ? `<span class="badge red">Currently unavailable</span>` : `<span class="badge green">Available</span>`;
+  const waMsg = `Namaste Laligurans Photo Studio!\nI want to order: ${p.name}\nPrice: ${price}\nProduct: ${origin}/product/${p.slug}`;
+  const waHref = "https://wa.me/" + WA_DIGITS + "?text=" + encodeURIComponent(waMsg);
+  const sizes = (p.sizeIds || []).map(id => {
+    const s = (p._sizes || []).find(x => x.id === id);
+    if (!s) return "";
+    return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p,s)}</span></div>`;
+  }).filter(Boolean).join("");
+  const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
+  const kwHtml = (Array.isArray(p.keywords) && p.keywords.length)
+    ? `<div id="ppKwHidden" style="position:absolute;left:-9999px;height:0;overflow:hidden;pointer-events:none" aria-hidden="true">Related: ${esc(p.keywords.join(", "))}</div>`
+    : "";
+  return `<div class="wrap">
+    <a href="/" class="pp-back">‹ Back to Home</a>
+    <div class="pp-grid">
+      <div class="pp-media">${img ? `<img id="ppImg" src="${escAttr(img)}" alt="${escAttr(p.name)} - Laligurans Photo Studio" fetchpriority="high" />` : `<img id="ppImg" alt="" />`}</div>
+      <div class="pp-info">
+        <p class="p-cat" id="ppCat">${catName}</p>
+        <nav id="ppCrumb" class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/category/${escAttr(catSlug)}">${catLabel}</a> › <span>${name}</span></nav>
+        <h1 id="ppName" class="pp-name">${name}</h1>
+        <p id="ppDesc" class="pp-desc">${desc}</p>
+        ${kwHtml}
+        <div id="ppSizes" class="pm-sizes">${sizesHtml}</div>
+        <p id="ppPrice" class="pp-price">${price}</p>
+        <p id="ppAvail">${availHtml}</p>
+        <div class="pp-actions">
+          <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
+          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
+          <a id="ppWa" class="p-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">Enquire</a>
+        </div>
+      </div>
+    </div>
+    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
+  </div>`;
 }
 async function handleCategory(request,env,ctx,path){
   const slug=decodeURIComponent(path.replace(/^\/category\//,"").replace(/\/$/,""));
