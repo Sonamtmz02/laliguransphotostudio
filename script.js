@@ -333,8 +333,8 @@ function renderStore() {
   const phDisplay = storePhoneDisplay();
   const phTel = storePhoneTel();
   const em = (s.email || "").trim() || CONTACT.email;
-  $("brandName").textContent = shortName(name);
-  $("drawerName").textContent = shortName(name);
+  $("brandName").textContent = name;
+$("drawerName").textContent = name;
   $("heroKicker").innerHTML = `<i class="fl">❀</i> WELCOME TO ${esc(name.toUpperCase())}`;
   $("tagLine1").textContent = parts[0] || tag;
   $("tagLine2").textContent = parts[1] || "";
