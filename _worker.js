@@ -308,7 +308,8 @@ function buildProductBody(p,cat,img,origin){
         </div>
       </div>
     </div>
-    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
+  <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
+<div class="sticky-bottom-bar"><a id="sbbWa" class="sbb-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">WhatsApp Enquiry</a><button id="sbbCart" class="sbb-cart" type="button">Add to Cart</button></div>
   </div>`;
 }
 async function handleProduct(request,env,ctx,path){
