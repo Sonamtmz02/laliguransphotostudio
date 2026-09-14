@@ -1,4 +1,4 @@
-/* LALIGURANS edge router v20 - SEO: crawlable category links, home canonical/OG, ItemList+Breadcrumb schema, hidden-text removed */
+/* LALIGURANS edge router v21 - SEO: crawlable category links, home canonical/OG, ItemList+Breadcrumb schema, hidden-text removed + image download filename (Content-Disposition) */
 const PROJECT_ID = "laligurans-photo-studio";
 const API_KEY = "AIzaSyAopefoW6m7RYV_HkN1rzHqMsN4tN0HJ8I";
 const ADMIN_BASE = "https://laligurans-admin.pages.dev";
@@ -139,12 +139,32 @@ function notFound(origin){return new Response(`<!doctype html><html><head><meta 
 /* v20 FIX: seller थपियो; rating केवल वास्तविक data भएमा मात्र (गुगल नीति अनुसार) */
 function jsonld(p,cat,img,url,origin){const crumbs={"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":origin+"/"},{"@type":"ListItem","position":2,"name":cat?cat.name:"Products","item":origin+"/category/"+(cat?slugify(cat.name):"")},{"@type":"ListItem","position":3,"name":p.name,"item":url}]};const prod={"@context":"https://schema.org","@type":"Product","name":p.name,"image":img?[img]:[],"description":p.description||p.name,"category":cat?cat.name:undefined,"brand":{"@type":"Brand","name":"Laligurans Photo Studio"},"offers":{"@type":"Offer","price":Number(p.price||0),"priceCurrency":"NPR","availability":p.isAvailable===false?"https://schema.org/OutOfStock":"https://schema.org/InStock","url":url,"seller":{"@type":"Organization","name":"Laligurans Photo Studio"}}};if(Number(p.ratingValue)>0&&Number(p.reviewCount)>0){prod.aggregateRating={"@type":"AggregateRating","ratingValue":Number(p.ratingValue),"reviewCount":Number(p.reviewCount),"bestRating":"5","worstRating":"1"};}return [prod,crumbs];}
 
+/* v21 FIX: image save/download गर्दा product/gallery को नाम filename बनाउने */
+async function imgFilename(key){
+  try{
+    const ck=new Request("https://www.laliguransphotostudio.com.np/__imgname/"+encodeURIComponent(key));
+    const hit=await caches.default.match(ck);
+    if(hit)return await hit.text();
+    const parts=key.split("/");
+    const coll=parts[0],docId=parts[1];
+    const ext=(parts[2].split(".").pop()||"jpg").toLowerCase();
+    const doc=await fetchDoc(PROJECT_ID,API_KEY,coll+"/"+docId);
+    let base=slugify(doc?(coll==="products"?doc.name:doc.title):"");
+    if(!base||base==="item")base=parts[2].replace(/\.[^.]+$/,"");
+    const fn=base+"."+ext;
+    await caches.default.put(ck,new Response(fn,{headers:{"cache-control":"public, max-age=3600"}}));
+    return fn;
+  }catch(e){return "";}
+}
 async function handleImg(path){
   const key=path.replace(/^\/img\//,"");
   if(!/^(products|gallery)\/[A-Za-z0-9-]+\/\d+-[a-f0-9]{6,12}\.(jpg|jpeg|png|webp)$/i.test(key))return new Response("bad key",{status:400,headers:secHeaders({})});
   const r=await fetch(ADMIN_BASE+"/api/img/"+key);
   if(!r.ok)return new Response("not found",{status:404,headers:secHeaders({})});
-  return new Response(await r.arrayBuffer(),{headers:secHeaders({"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"})});
+  const fn=await imgFilename(key);
+  const headers=secHeaders({"content-type":r.headers.get("content-type")||"image/jpeg","cache-control":"public, max-age=31536000, immutable"});
+  if(fn)headers["content-disposition"]="inline; filename=\""+fn+"\"";
+  return new Response(await r.arrayBuffer(),{headers});
 }
 
 async function handleSitemap(request){
@@ -282,7 +302,8 @@ function buildProductBody(p,cat,img,origin){
         <p id="ppAvail">${availHtml}</p>
         <div class="pp-actions">
           <button id="ppFav" class="icon-btn heart" aria-label="Wishlist"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8l1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
-          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button><button id="ppCart" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><path d="M6 7h12l1 14H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg> Add to Cart</button>
+          <button id="ppShare" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.7l6.8-4M8.6 13.3l6.8 4"/></svg> Share</button>
+          <button id="ppCart" class="btn-ghost2" type="button"><svg class="ic sm" viewBox="0 0 24 24"><path d="M6 7h12l1 14H5L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg> Add to Cart</button>
           <a id="ppWa" class="p-wa" href="${escAttr(waHref)}" target="_blank" rel="noopener">Enquire</a>
         </div>
       </div>
@@ -393,4 +414,4 @@ export default {
       try{return await assetsWithSec(request,env);}catch(e2){return new Response("Server error",{status:500,headers:secHeaders({"content-type":"text/plain"})});}
     }
   }
-}
+      }
