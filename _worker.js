@@ -327,6 +327,7 @@ function buildProductBody(p,cat,img,origin){
     return `<div class="pm-size"><span>${esc(s.name)}${s.dimensions ? " (" + esc(s.dimensions) + ")" : ""}</span><span>${sizePriceText(p,s)}</span></div>`;
   }).filter(Boolean).join("");
   const sizesHtml = sizes ? `<p class="eyebrow">AVAILABLE SIZES</p>${sizes}` : "";
+  const faqList = faqFor(p, cat);
   return `<div class="wrap">
     <a href="/" class="pp-back">‹ Back to Home</a>
     <div class="pp-grid">
