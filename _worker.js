@@ -348,7 +348,8 @@ function buildProductBody(p,cat,img,origin){
         </div>
       </div>
     </div>
-  <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
+      ${faqHtml(faqList)}
+    <section id="relSec" hidden><p class="eyebrow">RELATED PRODUCTS</p><div id="ppRelated" class="p-grid small"></div></section>
   </div>`;
 }
 async function handleProduct(request,env,ctx,path){
