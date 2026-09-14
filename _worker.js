@@ -270,7 +270,46 @@ async function handleHome(request,env,ctx){
     return new Response(shell,{status:500,headers:secHeaders({"content-type":"text/html;charset=utf-8","x-boot":"error:"+String(e.message||e)})});
   }
 }
-
+/* v22 FIX: FAQ (made-to-order + WhatsApp order + studio pickup) — visible FAQ + FAQPage schema */
+const FAQ_GENERAL = [
+  ["Product order कसरी गर्ने?", "हाम्रा सबै product made-to-order हुन् — अर्थात् तपाईंको order अनुसार नयाँ बनाइन्छ। Website मा product हेरेर WhatsApp वा call बाट order गर्नुहोस्; आवश्यक photo र size पनि त्यहीँ पठाइदिनुहोस्।"],
+  ["Product delivery हुन्छ कि स्टुडियोमा लिन आउनुपर्छ?", "अहिले online order गरेपछि हाम्रो स्टुडियो (चौतारा, सिन्धुपाल्चोक) मा आएर product लिनुपर्ने व्यवस्था छ। All-over delivery system चाँडै ल्याउँदैछौं — सुरु हुने बित्तिकै website मा update हुनेछ।"],
+  ["Product बनाउन कति समय लाग्छ?", "हरेक product order अनुसार नयाँ बनाइने भएकाले समय product को प्रकार र त्यस बेलाको work-load मा भर पर्छ। Order गर्नासाथ WhatsApp बाट तयार हुने समय भनिदिन्छौं।"],
+  ["Payment कसरी गर्ने?", "Order confirm गर्दा payment को तरिका (स्टुडियोमा वा उपलब्ध online माध्यम) WhatsApp बाट नै जानकारी दिइन्छ। कुनै लुकेको शुल्क हुँदैन।"],
+  ["Custom product को लागि photo कसरी पठाउने?", "Frame, keychain, album जस्ता custom product को लागि स्पष्ट देखिने photo WhatsApp मा पठाउनुहोस्। Photo quality बारे हामी आफैं guide गर्छौं।"],
+  ["के product हरू पहिले नै बनेका (ready-made) हुन्छन्?", "होइन। हामी customer को order, photo र रोजाइ अनुसार नयाँ बनाउँछौं — त्यसैले तपाईंले ठ्याक्कै आफू चाहेको design पाउनुहुन्छ।"]
+];
+const FAQ_BY_CAT = {
+  "mala-frame": [
+    ["Dubo को mala frame मा के-के राख्न मिल्छ?", "विवाह, पास्नी वा व्रतबन्धमा लगाएको dubo को mala, जोडी वा बच्चाको photo, र चाहेमा नाम/मिति — सबै frame भित्र सुरक्षित राखिन्छ।"],
+    ["Mala frame कति वर्षसम्म राम्रो रहन्छ?", "Mala र photo लाई glass/box cover भित्र preserve गरिने भएकाले धूलो र ओसबाट जोगिएर लामो समयसम्म नयाँ जस्तै रहन्छ।"],
+    ["Mala frame को size र price कस्तो छ?", "विभिन्न size उपलब्ध छन्; price size र design अनुसार फरक हुन्छ। हालको price यस page मा छ — नयाँ size चाहिएमा WhatsApp मा सोध्नुहोस्।"]
+  ],
+  "frame": [
+    ["कुन-कुन photo को frame बनाउन मिल्छ?", "विवाह, पास्नी, जन्मदिन, family वा कुनै पनि विशेष क्षणको photo को frame बनाउन मिल्छ।"],
+    ["Frame को रङ र size छान्न मिल्छ?", "मिल्छ — photo सुहाउने golden, silver वा अन्य frame र आवश्यक size तपाईंले रोज्न सक्नुहुन्छ।"]
+  ],
+  "lamination-frame": [
+    ["के-के lamination गर्न मिल्छ?", "प्रमाणपत्र, कागजात, पुराना photo र महत्त्वपूर्ण document lamination गरेर लामो समय सुरक्षित राख्न मिल्छ।"],
+    ["Lamination ले कागजात बिगार्दैन?", "बिगार्दैन — च्यातिन, भिज्न वा फिक्का हुनबाट जोगाएर लामो समय सुरक्षित राख्छ।"]
+  ],
+  "keychain": [
+    ["Keychain मा कुन photo राख्न मिल्छ?", "आफ्नो, परिवार, साथी वा partner को कुनै पनि मनपर्ने photo राख्न मिल्छ।"],
+    ["Keychain को price कति छ?", "Only keychain र bell/doll सहितको combo गरी फरक-फरक price छन् — विस्तृत price यस page मा दिइएको छ।"]
+  ],
+  "gift-items": [
+    ["Gift item मा के-के customize गर्न मिल्छ?", "Ribbon को रङ, flower को प्रकार, message card र occasion अनुसारको design customize हुन्छ।"],
+    ["Gift को लागि last-minute order मिल्छ?", "Work-load अनुसार मिल्न सक्छ — त्यसैले अत्यावश्यक भएमा पहिले call वा WhatsApp गर्नुहोस्।"]
+  ],
+  "bouquet": [
+    ["Bouquet मा के-के छान्न मिल्छ?", "Rose को रङ, ribbon style र budget अनुसारको bouquet बनाइदिन्छौं।"],
+    ["Bouquet कति दिन अगाडि order गर्नुपर्छ?", "Made-to-order भएकाले केही दिन अगाडि order गर्नु सुविधाजनक हुन्छ; urgent भएमा WhatsApp गर्नुहोस्।"]
+  ]
+};
+function faqFor(p, cat){ const sl = cat ? slugify(cat.name) : ""; return FAQ_GENERAL.concat(FAQ_BY_CAT[sl] || []); }
+function faqHtml(list){ if(!list || !list.length) return ""; return `<section style="margin:1.4rem 0 2rem"><p class="eyebrow">FAQ — COMMON QUESTIONS</p><h2 style="margin:0 0 .7rem;font-size:1.25rem">अक्सर सोधिने प्रश्नहरू</h2>` + list.map(x => `<details style="border:1px solid var(--border,#e8ded3);border-radius:12px;background:var(--surface,#fff);padding:.7rem .95rem;margin-bottom:.55rem"><summary style="cursor:pointer;font-weight:700;font-size:.92rem">${x[0]}</summary><p style="margin:.55rem 0 0;color:var(--text-muted,#6d655e);font-size:.88rem;line-height:1.7">${x[1]}</p></details>`).join("") + `</section>`; }
+function faqSchema(list){ return {"@context":"https://schema.org","@type":"FAQPage","mainEntity":(list||[]).map(x => ({"@type":"Question","name":x[0],"acceptedAnswer":{"@type":"Answer","text":x[1]}}))}; }
+/* v20 FIX: ppKwHidden (hidden text) हटाइयो */
 /* v20 FIX: ppKwHidden (hidden text) हटाइयो */
 function buildProductBody(p,cat,img,origin){
   const catName = cat ? esc(cat.name.toUpperCase()) : "SERVICE";
