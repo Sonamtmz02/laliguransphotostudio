@@ -328,12 +328,3 @@ body.dark .cart-foot{border-top-color:#3a3533}
 .drawer-brand .brand-txt{min-width:0}
 .drawer-brand .brand-txt strong{white-space:normal;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
-/* ===== STICKY BOTTOM BAR (MOBILE) ===== */
-.sticky-bottom-bar{display:none}
-@media(max-width:768px){
-.sticky-bottom-bar{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:.6rem .8rem;gap:.6rem;z-index:45;box-shadow:0 -4px 12px rgba(0,0,0,.08)}
-.sticky-bottom-bar a,.sticky-bottom-bar button{flex:1;padding:.85rem;border-radius:12px;font-weight:800;font-size:.85rem;text-align:center;text-decoration:none;border:0;cursor:pointer}
-.sticky-bottom-bar .sbb-wa{background:var(--wa);color:#fff}
-.sticky-bottom-bar .sbb-cart{background:var(--primary);color:#fff}
-body{padding-bottom:75px}
-}
